@@ -13,8 +13,14 @@ Feature
 * Build environment is isolated within a Docker container
 * Multistrap based bootstrapping
 * Initramfs creation
-* [Official Raspberry Kernel](https://github.com/raspberrypi/firmware) including firmware modules and propritary stuff
+* [Official Raspberry Kernel](https://github.com/raspberrypi/firmware) including firmware modules and proprietary stuff
 * CLI mode (no GUI)
+
+Proprietary Packages
+--------------------
+
+* https://github.com/raspberrypi/firmware
+* https://github.com/RPi-Distro/firmware-nonfree
 
 Requirements
 --------------------

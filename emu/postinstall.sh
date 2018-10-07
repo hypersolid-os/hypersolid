@@ -10,7 +10,10 @@ mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
 update-binfmts --enable
 
 # chroot into fs (emulated mode)
-chroot /home/build/rootfs/ /bin/bash -c "/.setup/setup.sh"
+chroot /home/build/rootfs/ /bin/bash -c "/.setup/postinstall-chroot.sh"
 
 # move initramfs
 mv /home/build/rootfs/boot/initrd.img-* /home/build/boot/initramfs.img
+
+# cleanup setup
+rm -rf /home/build/rootfs/.setup

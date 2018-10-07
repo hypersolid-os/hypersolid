@@ -1,0 +1,7 @@
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# Wifi
+auto wlan0
+allow-hotplug wlan0

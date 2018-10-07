@@ -9,8 +9,15 @@ export LC_ALL=C LANGUAGE=C LANG=C
 # configure packages
 dpkg --configure -a
 
+# disable services
+systemctl disable systemd-timesyncd
+systemctl disable console-setup
+
+# run console setup
+setupcon --save-only
+
 # create initramfs
-update-initramfs -k 4.14.70+ -c -v
+update-initramfs -k "$(cat /etc/raspberry_kernel)" -c -v
 
 # set root password
 echo "root:root" | chpasswd

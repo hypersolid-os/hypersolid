@@ -1,0 +1,13 @@
+# CONFIGURATION FILE FOR SETUPCON
+
+# Consult the console-setup(5) manual page.
+
+ACTIVE_CONSOLES="/dev/tty[1-6]"
+
+CHARMAP="ISO-8859-15"
+
+CODESET="Lat15"
+FONTFACE="Fixed"
+FONTSIZE="8x16"
+
+VIDEOMODE=
