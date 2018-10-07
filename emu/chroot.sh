@@ -11,3 +11,6 @@ update-binfmts --enable
 
 # chroot into fs (emulated mode)
 chroot /home/build/rootfs/ /bin/bash -c "/.setup/setup.sh"
+
+# move initramfs
+mv /home/build/rootfs/boot/initrd.img-* /home/build/boot/initramfs.img

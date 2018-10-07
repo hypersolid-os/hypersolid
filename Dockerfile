@@ -11,7 +11,7 @@ RUN set -xe \
     && echo "deb http://ftp2.de.debian.org/debian/ stretch main contrib non-free" > /etc/apt/sources.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends \ 
-        ca-certificates mount unzip wget util-linux nano multistrap binfmt-support qemu-user-static
+        ca-certificates mount unzip wget util-linux nano multistrap binfmt-support qemu-user-static apt-transport-https
 
 # copy firmware
 COPY assets/firmware.zip /tmp/raspberry-firmware
@@ -22,7 +22,7 @@ RUN set -xe \
     && unzip /tmp/raspberry-firmware -d /home/build \
     && cp -r /home/build/firmware-1.20180919/boot/* /home/build/boot
 
-# copy additional files (config)
+# copy additional files (raspberry boot config)
 COPY bootconfig/ home/build/boot
 
 # copy mutlistrap config
@@ -44,10 +44,17 @@ RUN set -xe \
     && echo "${RASPBERRY_KERNEL_VERSION}" > /home/build/rootfs/etc/raspberry_kernel
 
 # copy addtional rootfs files
-COPY fs/ /home/build/rootfs
+COPY rootfs/ /home/build/rootfs
 
 # copy scripts
 COPY emu/ /home/build/rootfs/.setup
+
+# download nonfree firmware (wifi..)
+RUN set -xe \
+    && mkdir -p /home/build/rootfs/lib/firmware/brcm \
+    && cd /home/build/rootfs/lib/firmware/brcm \
+    && wget https://github.com/RPi-Distro/firmware-nonfree/raw/master/brcm/brcmfmac43430-sdio.bin \
+    && wget https://github.com/RPi-Distro/firmware-nonfree/raw/master/brcm/brcmfmac43430-sdio.txt
 
 # working dir
 WORKDIR /home/build
