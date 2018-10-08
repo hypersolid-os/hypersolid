@@ -17,3 +17,6 @@ mv /home/build/rootfs/boot/initrd.img-* /home/build/boot/initramfs.img
 
 # cleanup setup
 rm -rf /home/build/rootfs/.setup
+
+# cleanup binaries
+rm /home/build/rootfs/usr/bin/qemu-arm-static
