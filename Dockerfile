@@ -12,7 +12,7 @@ RUN set -xe \
     && echo "deb http://ftp2.de.debian.org/debian/ stretch main contrib non-free" > /etc/apt/sources.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends \ 
-        ca-certificates mount unzip wget util-linux nano multistrap binfmt-support qemu-user-static apt-transport-https
+        ca-certificates mount unzip wget util-linux nano multistrap binfmt-support qemu-user-static apt-transport-https lzop
 
 # structure
 RUN set -xe \
@@ -56,6 +56,9 @@ COPY rootfs/ /home/build/rootfs
 
 # copy postinstall scripts
 COPY postinstall/ /home/build/rootfs/.setup
+
+# copy initramfs config
+COPY initramfs/ /home/build/rootfs/etc/initramfs-tools
 
 # working dir
 WORKDIR /home/build
