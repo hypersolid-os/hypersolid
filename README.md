@@ -1,5 +1,5 @@
-DEBIAN Imgae Builder for RaspberryPI (armel)
-==============================================
+DEBIAN Embedded Image Builder for RaspberryPI (armel)
+=====================================================
 
 **Build a customized, embedded debian os based on raspberry-kernel**
 
@@ -8,6 +8,7 @@ DEBIAN Imgae Builder for RaspberryPI (armel)
 Feature
 --------------------
 
+* Minimal system including systemd and networking
 * Debian stretch latest
 * Build a full customized debian image from scratch (no raspbian)
 * Build environment is isolated within a Docker container
@@ -15,6 +16,11 @@ Feature
 * Initramfs creation
 * [Official Raspberry Kernel](https://github.com/raspberrypi/firmware) including firmware modules and proprietary stuff
 * CLI mode (no GUI)
+
+Devices
+--------------------
+
+* Raspberry Zero (W)
 
 Proprietary Packages
 --------------------

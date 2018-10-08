@@ -9,6 +9,9 @@ export LC_ALL=C LANGUAGE=C LANG=C
 # configure packages
 dpkg --configure -a
 
+# set default target
+systemctl set-default multi-user.target
+
 # disable services
 systemctl disable systemd-timesyncd
 systemctl disable console-setup
