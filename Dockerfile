@@ -12,7 +12,8 @@ RUN set -xe \
     && echo "deb http://ftp2.de.debian.org/debian/ stretch main contrib non-free" > /etc/apt/sources.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends \ 
-        ca-certificates mount unzip wget util-linux nano multistrap binfmt-support qemu-user-static apt-transport-https lzop
+        ca-certificates mount unzip wget util-linux nano multistrap binfmt-support qemu-user-static apt-transport-https \
+        squashfs-tools
 
 # structure
 RUN set -xe \

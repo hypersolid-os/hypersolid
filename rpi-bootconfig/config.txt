@@ -5,4 +5,4 @@ gpu_mem_256=16
 
 [pi0]
 kernel=kernel.img
-initramfs=initramfs.img
+initramfs initramfs.img

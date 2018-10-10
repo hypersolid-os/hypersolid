@@ -1,0 +1,155 @@
+#!/bin/sh
+
+#####################################################################################
+#                                                                                   #
+#                         SQUASHFS ROOT with tmpfs overlay                          #
+#                                                                                   #
+#           Copyright (C) 2018 Andi Dittrich <https://andidittrich.de>              #
+#                                                                                   #
+# ISSUES: https://github.com/AndiDittrich/debian-scratch-raspberry                  #
+# LICENSE: GNU General Public License 2                                             #
+#                                                                                   #
+# rsnapshot-ng comes with ABSOLUTELY NO WARRANTY.                                   #
+# This is free software, and you may copy, distribute and/or modify it under the    #
+# terms of the GNU GPL (version 2 or at your option any later version).             #
+# See the GNU General Public License 2 for details.                                 #
+#####################################################################################
+
+# VARS
+# ${ROOT} the root device (kernel param). /dev/mmcblk0p1
+# ${rootmnt} the mount point of the final root file system. /root
+
+PREREQ=""
+prereqs()
+{
+    echo "$PREREQ"
+}
+
+case $1 in
+prereqs)
+    prereqs
+    exit 0
+    ;;
+esac
+
+. /scripts/functions
+# Begin real processing below this line
+
+log_begin_msg "Initializing merged root-file-system with tmpfs overlay"
+
+# ############################################################################
+# CONFIG
+# ############################################################################
+
+# filename of the squashfs image file on root partition
+SQUAHSFS_IMG=system.img
+
+# mount points
+MNT_SQUASHFS=/mnt/system
+MNT_TMPFS=/mnt/tmpfs
+
+# overlayfs directories
+OVERLAY_WORK=$MNT_TMPFS/.work
+OVERLAY_UPPER=$MNT_TMPFS/.upper
+
+# ############################################################################
+# UTILITY
+# ############################################################################
+
+# check exit code - throw failure message in case of error
+secure_mkdir(){
+    mkdir -p $1
+    if [ $? -ne 0 ]; then
+        log_failure_msg "failed to create dirrectory $1"
+        exit 0
+    fi
+}
+
+# move mount
+secure_mv_mount(){
+    mount -o move $1 $2
+    if [ $? -ne 0 ]; then
+        log_failure_msg "failed to move mount ${1} to ${2}"
+        exit 0
+    fi
+}
+
+# ############################################################################
+# Stage 1 - create temporary mount points for tmpfs and overlayfs
+# ############################################################################
+
+# create MNT_SQUASHFS mount within init rootfs
+secure_mkdir ${MNT_SQUASHFS}
+
+# create MNT_TMPFS mount within init rootfs
+secure_mkdir ${MNT_TMPFS}
+
+# ############################################################################
+# Stage 2 - Create TMPFS
+# ############################################################################
+
+# create tmpfs (used as rw overlay)
+mount -t tmpfs tmpfs-live ${MNT_TMPFS}
+if [ $? -ne 0 ]; then
+    log_failure_msg "failed to mount tmpfs in ${MNT_TMPFS}"
+    exit 0
+fi
+
+# create OVERLAY_WORK mount within tmpfs
+secure_mkdir ${OVERLAY_WORK}
+
+# create OVERLAY_UPPER mount within tmpfs
+secure_mkdir ${OVERLAY_UPPER}
+
+# ############################################################################
+# Stage 3 - create mount points within final tmpfs
+# ############################################################################
+
+# create MNT_SQUASHFS mount
+secure_mkdir ${OVERLAY_UPPER}${MNT_SQUASHFS}
+
+# create MNT_TMPFS mount
+secure_mkdir ${OVERLAY_UPPER}${MNT_TMPFS}
+
+# create /boot mount
+secure_mkdir ${OVERLAY_UPPER}/boot
+
+# ############################################################################
+# Stage 4 - initialize overlayfs mount
+# ############################################################################
+
+# move root mount (/dev/mmcblk0p1) into /boot
+secure_mv_mount ${rootmnt} ${OVERLAY_UPPER}/boot
+
+# mount squashfs rootfs
+losetup /dev/loop0 ${OVERLAY_UPPER}/boot/${SQUAHSFS_IMG}
+mount -t squashfs /dev/loop0 ${MNT_SQUASHFS}
+if [ $? -ne 0 ]; then
+    log_failure_msg "failed to mount squashfs"
+    exit 0
+fi
+
+# create overlay mount (empty lower dir!)
+mount -t overlay -o lowerdir=${MNT_SQUASHFS},upperdir=${OVERLAY_UPPER},workdir=${OVERLAY_WORK} overlay ${rootmnt}
+if [ $? -ne 0 ]; then
+    log_failure_msg "failed to mount overlay"
+    exit 0
+fi
+
+# ############################################################################
+# Stage 5 - move mount points into final root fs
+# ############################################################################
+
+# move root mount (/dev/mmcblk0p1) into overlayfs /boot
+secure_mv_mount ${OVERLAY_UPPER}/boot ${rootmnt}/boot
+
+# move tmpfs mount into final rootfs
+secure_mv_mount ${MNT_TMPFS} ${rootmnt}${MNT_TMPFS}
+
+# move squashfs mount into final rootfs
+secure_mv_mount ${MNT_SQUASHFS} ${rootmnt}${MNT_SQUASHFS}
+
+# ############################################################################
+
+log_end_msg
+exit 0

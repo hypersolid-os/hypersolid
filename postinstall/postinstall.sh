@@ -20,3 +20,7 @@ rm -rf /home/build/rootfs/.setup
 
 # cleanup binaries
 rm /home/build/rootfs/usr/bin/qemu-arm-static
+
+# create squashfs
+mksquashfs /home/build/rootfs /home/build/boot/system.img \
+    -comp lzo
