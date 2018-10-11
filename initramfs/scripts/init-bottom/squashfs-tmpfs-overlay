@@ -15,10 +15,6 @@
 # See the GNU General Public License 2 for details.                                 #
 #####################################################################################
 
-# VARS
-# ${ROOT} the root device (kernel param). /dev/mmcblk0p1
-# ${rootmnt} the mount point of the final root file system. /root
-
 PREREQ=""
 prereqs()
 {
@@ -35,7 +31,7 @@ esac
 . /scripts/functions
 # Begin real processing below this line
 
-log_begin_msg "Initializing merged root-file-system with tmpfs overlay"
+log_begin_msg "[hypersolid] initializing merged root-file-system with tmpfs overlay"
 
 # ############################################################################
 # CONFIG
@@ -53,6 +49,16 @@ OVERLAY_WORK=$MNT_TMPFS/.work
 OVERLAY_UPPER=$MNT_TMPFS/.upper
 
 # ############################################################################
+# KERNEL PARAMS
+# ############################################################################
+
+# VARS
+# ${ROOT} the root device (kernel param). /dev/mmcblk0p1
+# ${rootmnt} the mount point of the final root file system. /root
+
+
+
+# ############################################################################
 # UTILITY
 # ############################################################################
 
@@ -60,7 +66,7 @@ OVERLAY_UPPER=$MNT_TMPFS/.upper
 secure_mkdir(){
     mkdir -p $1
     if [ $? -ne 0 ]; then
-        log_failure_msg "failed to create dirrectory $1"
+        log_failure_msg "[hypersolid] failed to create dirrectory $1"
         exit 0
     fi
 }
@@ -69,7 +75,16 @@ secure_mkdir(){
 secure_mv_mount(){
     mount -o move $1 $2
     if [ $? -ne 0 ]; then
-        log_failure_msg "failed to move mount ${1} to ${2}"
+        log_failure_msg "[hypersolid] failed to move mount ${1} to ${2}"
+        exit 0
+    fi
+}
+
+# mount filesystem
+secure_mount(){
+    mount -t $1 $2
+    if [ $? -ne 0 ]; then
+        log_failure_msg "[hypersolid] failed to mount $1 - [$2]"
         exit 0
     fi
 }
@@ -89,11 +104,7 @@ secure_mkdir ${MNT_TMPFS}
 # ############################################################################
 
 # create tmpfs (used as rw overlay)
-mount -t tmpfs tmpfs-live ${MNT_TMPFS}
-if [ $? -ne 0 ]; then
-    log_failure_msg "failed to mount tmpfs in ${MNT_TMPFS}"
-    exit 0
-fi
+secure_mount "tmpfs" "tmpfs-live ${MNT_TMPFS}"
 
 # create OVERLAY_WORK mount within tmpfs
 secure_mkdir ${OVERLAY_WORK}
@@ -115,7 +126,7 @@ secure_mkdir ${OVERLAY_UPPER}${MNT_TMPFS}
 secure_mkdir ${OVERLAY_UPPER}/boot
 
 # ############################################################################
-# Stage 4 - initialize overlayfs mount
+# Stage 4 - initialize squashfs and overlayfs mount
 # ############################################################################
 
 # move root mount (/dev/mmcblk0p1) into /boot
@@ -123,18 +134,10 @@ secure_mv_mount ${rootmnt} ${OVERLAY_UPPER}/boot
 
 # mount squashfs rootfs
 losetup /dev/loop0 ${OVERLAY_UPPER}/boot/${SQUAHSFS_IMG}
-mount -t squashfs /dev/loop0 ${MNT_SQUASHFS}
-if [ $? -ne 0 ]; then
-    log_failure_msg "failed to mount squashfs"
-    exit 0
-fi
+secure_mount "squashfs" "/dev/loop0 ${MNT_SQUASHFS}"
 
 # create overlay mount (empty lower dir!)
-mount -t overlay -o lowerdir=${MNT_SQUASHFS},upperdir=${OVERLAY_UPPER},workdir=${OVERLAY_WORK} overlay ${rootmnt}
-if [ $? -ne 0 ]; then
-    log_failure_msg "failed to mount overlay"
-    exit 0
-fi
+secure_mount "overlay" "lowerdir=${MNT_SQUASHFS},upperdir=${OVERLAY_UPPER},workdir=${OVERLAY_WORK} overlay ${rootmnt}"
 
 # ############################################################################
 # Stage 5 - move mount points into final root fs

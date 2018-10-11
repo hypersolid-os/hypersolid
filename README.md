@@ -10,27 +10,21 @@ hypersolid
 Feature
 --------------------
 
-* Minimal system including systemd and networking
-* Debian stretch latest
-* Build a full customized debian image from scratch (no raspbian)
-* Build environment is isolated within a Docker container
+* Build a full customized debian image from scratch
 * Multistrap based bootstrapping
+* Immutable filesystem (squashfs base with tmpfs overlay via overlayfs)
+* Persistent storage option (additional overlayfs base)
+* Build environment is isolated within a Docker container
+* Minimal system including systemd and networking
 * Initramfs creation
-* [Official Raspberry Kernel](https://github.com/raspberrypi/firmware) including firmware modules and proprietary stuff
 * CLI mode (no GUI)
 
-Devices
+Tested Devices
 --------------------
 
-* Raspberry Zero (W)
+* [Raspberry PI](docs/raspberry-pi.md) Zero W
 
-Proprietary Packages
---------------------
-
-* https://github.com/raspberrypi/firmware
-* https://github.com/RPi-Distro/firmware-nonfree
-
-Requirements
+Build Requirements
 --------------------
 
 * Linux based Host System
@@ -41,7 +35,6 @@ Requirements
 Usage
 --------------------
 
-1. run 
 
 License
 -------
