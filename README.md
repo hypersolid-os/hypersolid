@@ -1,5 +1,7 @@
-DEBIAN Embedded Image Builder for RaspberryPI (armel)
+hypersolid
 =====================================================
+
+**PRELIMINARY VERSION**
 
 **Build a customized, embedded debian os based on raspberry-kernel**
 
@@ -40,3 +42,8 @@ Usage
 --------------------
 
 1. run 
+
+License
+-------
+
+**hypersolid** is OpenSource and licensed under the Terms of [GNU General Public Licence v2](LICENSE.txt). You're welcome to [contribute](CONTRIBUTE.md)!
