@@ -13,7 +13,7 @@ Feature
 * Build a full customized debian image from scratch
 * Multistrap based bootstrapping
 * [Immutable filesystem](docs/filesystem.md) (squashfs base with tmpfs overlay via overlayfs)
-* [Persistent storage](docs/filesystem.md) option (additional overlayfs base)
+* [Persistent storage](docs/filesystem.md#persistent-storage) option (additional overlayfs base)
 * Build environment is isolated within a [Docker container](Dockerfile)
 * Minimal system including systemd and networking
 * Initramfs creation

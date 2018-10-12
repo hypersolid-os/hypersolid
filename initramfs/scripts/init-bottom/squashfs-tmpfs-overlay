@@ -3,6 +3,7 @@
 #####################################################################################
 #                                                                                   #
 #                         SQUASHFS ROOT with tmpfs overlay                          #
+#                          and optional persistent storage                          #
 #                                                                                   #
 #           Copyright (C) 2018 Andi Dittrich <https://andidittrich.de>              #
 #                                                                                   #
