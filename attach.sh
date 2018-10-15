@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-docker start -i raspberry-env
+docker start -i hypersolid-env

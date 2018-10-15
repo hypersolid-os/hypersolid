@@ -3,7 +3,7 @@ hypersolid
 
 **PRELIMINARY VERSION**
 
-**Build a customized, embedded debian os based on raspberry-kernel**
+**Build a customized, embedded debian os**
 
 > NOTE: this buildsystem is targeted to advanced/professional users with a several years of experience with linux/debian/docker only!
 
@@ -34,6 +34,21 @@ Build Requirements
 
 Usage
 --------------------
+
+Run `hypersolid.sh <targetdir>`
+
+**Example**
+
+```bash
+$ ./hypersolid.sh targets/raspberrypi-zero-w/
+
+```
+
+How it works
+--------------------
+
+1. hypersolid builds a docker container named `hypersolid-build` which isolated the build process from the host systems
+2. docker container based on a standard debian image
 
 
 License
