@@ -32,6 +32,12 @@ cp /usr/bin/qemu-arm-static /home/build/rootfs/usr/bin/
 # chroot into fs (emulated mode)
 chroot /home/build/rootfs/ /bin/bash -c "/.build/postinstall-chroot.sh"
 
+# run post configure script hook ?
+if [ -x "$ROOTFS/.build/scripts/post-configure.sh" ]; then
+    echo "hook [post-configure]"
+    $ROOTFS/.build/scripts/post-configure.sh
+fi
+
 # move initramfs
 mv /home/build/rootfs/boot/initramfs.img /home/build/boot/initramfs.img
 

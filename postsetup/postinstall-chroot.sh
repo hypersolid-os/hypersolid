@@ -28,7 +28,5 @@ ls -1 /lib/modules | sort -r | head -n1 > /etc/kernel_version
 # create initramfs
 mkinitramfs -o /boot/initramfs.img -v "$(cat /etc/kernel_version)"
 
-#update-initramfs -k "all" -c -v
-
 # set root password
 echo "root:root" | chpasswd

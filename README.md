@@ -37,11 +37,10 @@ Usage
 
 Run `hypersolid.sh <targetdir>`
 
-**Example**
+**Build**
 
 ```bash
 $ ./hypersolid.sh targets/raspberrypi-zero-w/
-
 ```
 
 How it works

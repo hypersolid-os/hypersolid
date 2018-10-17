@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# persistent storage
+# added as additional overlay via initramfs/overlayfs
+
+echo "hello"

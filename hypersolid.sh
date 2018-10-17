@@ -3,6 +3,9 @@
 # Fail on Error !
 set -e
 
+# additional docker build opts
+DOCKER_BUILD_OPTS=""
+
 # basedir
 BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -25,7 +28,7 @@ fi
 source $TARGET_DIR/config
 
 # build image
-docker build \
+docker build $DOCKER_BUILD_OPTS \
     --build-arg ARCH=$ARCH \
     --build-arg TARGET_DIR=$TARGET_DIR \
     -t hypersolid-build .
