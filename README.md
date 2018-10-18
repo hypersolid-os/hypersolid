@@ -22,7 +22,7 @@ Feature
 Tested Devices
 --------------------
 
-* [Raspberry PI](docs/raspberry-pi.md) Zero W
+* [Raspberry PI Zero W](docs/raspberry-pi.md)
 
 Build Requirements
 --------------------

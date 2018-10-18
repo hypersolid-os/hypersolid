@@ -30,3 +30,9 @@ mkinitramfs -o /boot/initramfs.img -v "$(cat /etc/kernel_version)"
 
 # set root password
 echo "root:root" | chpasswd
+
+# run post configure script hook ?
+if [ -x "/.build/scripts/post-chroot.sh" ]; then
+    echo "hook [post-chroot]"
+    /.build/scripts/post-chroot.sh
+fi

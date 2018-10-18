@@ -1,10 +1,10 @@
 disable_splash=1
 boot_delay=0
-gpu_mem=256
-gpu_mem_256=16
+gpu_mem=16
 
 # hw interfaces
 dtparam=i2c_arm=on
+dtparam=i2c1=on
 dtparam=spi=on
 
 [pi0]
