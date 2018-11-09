@@ -11,6 +11,9 @@ if [ -f "/.buildready" ]; then
     exit 0
 fi
 
+# load config
+source $ROOTFS/.build/config
+
 # create firstrun flag
 touch /.buildready
 
@@ -20,14 +23,17 @@ if [ -x "$ROOTFS/.build/scripts/post-multistrap.sh" ]; then
     $ROOTFS/.build/scripts/post-multistrap.sh
 fi
 
-# mount binfmt_misc
-mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
+# arm ? use emulation
+if [ "$CONF_ARCH" == "armel" ]; then
+    # mount binfmt_misc
+    mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
 
-# enable support
-update-binfmts --enable
+    # enable support
+    update-binfmts --enable
 
-# copy qemu binaries
-cp /usr/bin/qemu-arm-static /home/build/rootfs/usr/bin/
+    # copy qemu binaries
+    cp /usr/bin/qemu-arm-static /home/build/rootfs/usr/bin/
+fi
 
 # chroot into fs (emulated mode)
 chroot /home/build/rootfs/ /bin/bash -c "/.build/postinstall-chroot.sh"
@@ -45,7 +51,9 @@ mv /home/build/rootfs/boot/initramfs.img /home/build/boot/initramfs.img
 rm -rf /home/build/rootfs/.build
 
 # cleanup binaries
-rm /home/build/rootfs/usr/bin/qemu-*
+if [ "$CONF_ARCH" == "armel" ]; then
+    rm /home/build/rootfs/usr/bin/qemu-*
+fi
 
 # create squashfs
 mksquashfs /home/build/rootfs /home/build/boot/system.img -comp lzo

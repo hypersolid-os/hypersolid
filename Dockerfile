@@ -13,7 +13,7 @@ RUN set -xe \
     && apt-get update \
     && apt-get install -y --no-install-recommends \ 
         ca-certificates mount unzip wget util-linux nano multistrap binfmt-support qemu-user-static apt-transport-https \
-        squashfs-tools debian-archive-keyring gnupg
+        squashfs-tools debian-archive-keyring gnupg gdisk
 
 # structure
 RUN set -xe \
@@ -47,6 +47,9 @@ COPY postsetup/entrypoint.sh /entrypoint.sh
 
 # copy postinstall scripts
 COPY ${TARGET_DIR}/scripts /home/build/rootfs/.build/scripts
+
+# copy build config
+COPY ${TARGET_DIR}/config /home/build/rootfs/.build/config
 
 # copy initramfs config
 COPY initramfs/ /home/build/rootfs/etc/initramfs-tools

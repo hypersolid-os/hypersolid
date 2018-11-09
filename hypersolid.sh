@@ -29,7 +29,7 @@ source $TARGET_DIR/config
 
 # build image
 docker build $DOCKER_BUILD_OPTS \
-    --build-arg ARCH=$ARCH \
+    --build-arg ARCH=$CONF_ARCH \
     --build-arg TARGET_DIR=$TARGET_DIR \
     -t hypersolid-build .
 
