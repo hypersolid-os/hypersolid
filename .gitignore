@@ -1,2 +1,4 @@
 assets/*
 tmp/*
+dist/*
+!dist/.empty

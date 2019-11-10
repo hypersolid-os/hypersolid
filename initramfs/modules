@@ -2,3 +2,9 @@ sd_mod
 loop
 overlay
 squashfs
+virtio
+virtio_pci
+virtio_ring
+virtio_net
+virtio_blk
+virtio_scsi

@@ -5,7 +5,9 @@ hypersolid
 
 **Build a customized, embedded debian os**
 
-> NOTE: this buildsystem is targeted to advanced/professional users with a several years of experience with linux/debian/docker only!
+> **NOTE:** this buildsystem is targeted to advanced/professional users with a several years of experience with linux/debian/docker only!
+>
+> **DO NOT USE THIS SYSTEM/IMAGES AS BEGINNER - 
 
 Feature
 --------------------
@@ -30,7 +32,7 @@ Build Requirements
 * Linux based Host System
 * Host System with running Docker daemon
 * Host System with enabled `binfmt-support` (qemu armel emulation)
-* Active Internet connection to fetch the packages
+* Active Internet connection to fetch the packages or local package server
 
 Usage
 --------------------

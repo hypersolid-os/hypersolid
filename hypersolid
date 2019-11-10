@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+
+# Fail on Error !
+set -e
+
+# additional docker build opts
+DOCKER_BUILD_OPTS=""
+
+# basedir
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Check directory
+if [ ! -d "$BASEDIR/$1" ]; then
+  echo "target [$1] does not exists!"
+  exit 1
+fi
+
+# assign target dir
+TARGET_DIR=$1
+
+# Check config file
+if [ ! -f "$BASEDIR/$1/config" ]; then
+  echo "target config [$1] does not exists!"
+  exit 1
+fi
+
+# read config
+source $TARGET_DIR/config
+
+# temp dir
+TMP_DIR=$(mktemp -d)
+echo "Temp Dir: $TMP_DIR"
+
+# temp dir structure
+mkdir -p $TMP_DIR/{bootfs,rootfs,buildfs}
+
+# copy multistrap config
+# -------------------------------------------------
+echo "adding multistrap configuration"
+mkdir -p $TMP_DIR/buildfs/etc/multistrap
+cp -R multistrap/* $TMP_DIR/buildfs/etc/multistrap
+cp $TARGET_DIR/multistrap.ini $TMP_DIR/buildfs/etc/multistrap
+
+# copy initramfs config
+# -------------------------------------------------
+echo "adding initramfs configuration"
+mkdir -p $TMP_DIR/rootfs/etc/initramfs-tools
+cp -R initramfs/* $TMP_DIR/rootfs/etc/initramfs-tools
+
+# copy postsetup script
+# -------------------------------------------------
+echo "adding postsetup scripts"
+mkdir -p $TMP_DIR/rootfs/.build
+cp -R postsetup/* $TMP_DIR/rootfs/.build
+
+# copy generic rootfs files
+# -------------------------------------------------
+echo "adding generic root file system"
+cp -R rootfs/* $TMP_DIR/rootfs/
+
+# copy target files
+# -------------------------------------------------
+echo "adding target specific files"
+cp -R $TARGET_DIR/rootfs $TMP_DIR
+cp -R $TARGET_DIR/bootfs $TMP_DIR
+cp -R $TARGET_DIR/scripts $TMP_DIR/rootfs/.build/scripts
+cp -R $TARGET_DIR/config $TMP_DIR/rootfs/.build/config
+
+ls -all $TMP_DIR
+# build image
+echo "building build-system"
+docker build $DOCKER_BUILD_OPTS \
+    -t hypersolid-build \
+    -f $BASEDIR/Dockerfile \
+    $TMP_DIR
+
+# cleanup
+echo "cleaning up temporary directory"
+[ -d $TMP_DIR ] && rm -rf $TMP_DIR
+
+# remove old container
+if docker container ls -all | grep -q hypersolid-env; then
+    docker container rm hypersolid-env
+fi
+
+# run build
+echo "executing build scripts"
+docker run \
+    --privileged \
+    --tty \
+    --interactive \
+    --name hypersolid-env \
+    hypersolid-build
+
+# copy files
+docker cp hypersolid-env:/home/build/boot/ $BASEDIR/dist/
+
+# success
+exit 0
