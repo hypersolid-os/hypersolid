@@ -18,7 +18,7 @@ RUN set -xe \
 
 # structure
 RUN set -xe \
-    && mkdir -p /opt/bootrf \
+    && mkdir -p /opt/bootfs \
     && mkdir -p /opt/rootfs
 
 # copy build system files

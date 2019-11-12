@@ -1,7 +1,9 @@
+sg
 sd_mod
 loop
 overlay
 squashfs
+ext4
 virtio
 virtio_pci
 virtio_ring

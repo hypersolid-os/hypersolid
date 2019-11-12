@@ -1,4 +1,5 @@
 assets/*
 tmp/*
 dist/*
+.hidden/*
 !dist/.empty

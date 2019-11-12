@@ -1,0 +1,22 @@
+[Unit]
+Description=firstboot initialization of ssh keys
+
+# Start before Network Interfaces coming up
+Before=network-pre.target
+Wants=network-pre.target
+
+# Requires local FS
+After=local-fs.target
+
+# Do not start after basic.target!
+DefaultDependencies=no
+
+[Service]
+ExecStart=/usr/sbin/firstboot
+
+# Just Execute the shell script
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

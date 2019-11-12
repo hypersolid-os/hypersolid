@@ -1,0 +1,78 @@
+# What ports, IPs and protocols we listen for
+Port 43168
+
+# Use Only v2 Protocol
+Protocol 2
+
+# HostKeys for protocol version 2
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+# Use Global Key Location
+AuthorizedKeysFile /etc/ssh/authorized_keys/%u
+
+# Logging
+SyslogFacility AUTH
+LogLevel INFO
+
+# Authentication:
+LoginGraceTime 120
+StrictModes yes
+
+# Root Login via SSHKEY Only
+PermitRootLogin without-password
+
+# Don't read the user's ~/.rhosts and ~/.shosts files
+IgnoreRhosts yes
+
+# Uncomment if you don't trust ~/.ssh/known_hosts for RhostsRSAAuthentication
+IgnoreUserKnownHosts yes
+
+# PublicKey Auth (SSHKEYS)
+PubkeyAuthentication yes
+
+# similar for protocol version 2
+HostbasedAuthentication no
+
+# Change to no to disable tunnelled clear text passwords
+PasswordAuthentication no
+
+# To enable empty passwords, change to yes (NOT RECOMMENDED)
+PermitEmptyPasswords no
+
+# Change to yes to enable challenge-response passwords (beware issues with
+# some PAM modules and threads)
+ChallengeResponseAuthentication no
+
+# Kerberos options
+KerberosAuthentication no
+
+# GSSAPI options
+GSSAPIAuthentication no
+
+# Server, No GUI required
+X11Forwarding no
+X11DisplayOffset 10
+
+PrintLastLog yes
+TCPKeepAlive yes
+
+# Limit User/Group Access
+AllowGroups root ssh-access
+
+# SFTP
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+# Set this to 'yes' to enable PAM authentication, account processing,
+# and session processing. If this is enabled, PAM authentication will
+# be allowed through the ChallengeResponseAuthentication and
+# PasswordAuthentication.  Depending on your PAM configuration,
+# PAM authentication via ChallengeResponseAuthentication may bypass
+# the setting of "PermitRootLogin without-password".
+# If you just want the PAM account and session checks to run without
+# PAM authentication, then enable this but set PasswordAuthentication
+# and ChallengeResponseAuthentication to 'no'.
+UsePAM yes
+
+# Do not print motd (output via pam.d)
+PrintMotd no

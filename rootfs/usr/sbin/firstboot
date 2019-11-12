@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -e
+
+# persistent storage dir
+PSTORAGE_MOUNT=/mnt/storage
+
+# persistent storage mounted ?
+if mountpoint $PSTORAGE_MOUNT > /dev/null; then
+    echo "persistent storage available"
+else
+    echo "no persistent storage available..exiting"
+    exit 1
+fi
+
+# generate unique SSH Keys and store them within pstorage
+# ------------------------------
+echo "generating ssh host keys.."
+dpkg-reconfigure openssh-server
+mkdir -p $PSTORAGE_MOUNT/etc/ssh
+mv /etc/ssh/ssh_host_* $PSTORAGE_MOUNT/etc/ssh
+
+# disable service by masking it
+# ------------------------------
+mkdir -p $PSTORAGE_MOUNT/etc/systemd/system/
+ln -s /dev/null $PSTORAGE_MOUNT/etc/systemd/system/firstboot.service
+
+# enforce reboot
+reboot

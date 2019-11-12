@@ -2,6 +2,7 @@
 
 set -xe
 
+export BUILDFS=/opt/build
 export ROOTFS=/opt/rootfs
 export BOOTFS=/opt/bootfs
 
@@ -20,16 +21,26 @@ source $ROOTFS/.build/config
 # create firstrun flag
 touch /.buildready
 
-# run multistrap
+# copy static gpg keys
+mkdir -p $BUILDFS/etc/apt/trusted.gpg.d
+cp $ROOTFS/etc/apt/trusted.gpg.d/* $BUILDFS/etc/apt/trusted.gpg.d
+
+# run multistrap - $ROOTFS will be overwritten!
 multistrap \
     --arch $CONF_ARCH \
-    --dir /opt/rootfs \
+    --dir $BUILDFS \
     --file /etc/multistrap/multistrap.ini
 
+# copy additional files
+cp -R $ROOTFS/. $BUILDFS
+
+# busybox libmusl - just override binary
+wget -O $BUILDFS/bin/busybox https://busybox.net/downloads/binaries/1.31.0-defconfig-multiarch-musl/busybox-x86_64
+
 # run post multistrap script hook ?
-if [ -x "$ROOTFS/.build/scripts/post-multistrap.sh" ]; then
+if [ -x "$BUILDFS/.build/scripts/post-multistrap.sh" ]; then
     echo "hook [post-multistrap]"
-    $ROOTFS/.build/scripts/post-multistrap.sh
+    $BUILDFS/.build/scripts/post-multistrap.sh
 fi
 
 # arm ? use emulation
@@ -41,40 +52,40 @@ if [ "$CONF_ARCH" == "armel" ]; then
     update-binfmts --enable
 
     # copy qemu binaries
-    cp /usr/bin/qemu-arm-static /home/build/rootfs/usr/bin/
+    cp /usr/bin/qemu-arm-static /home/build/buildfs/usr/bin/
 fi
 
 # chroot into fs (emulated mode)
 echo "chroot into rootfs to execute postinstall actions"
-chroot $ROOTFS /bin/bash -c "/.build/postinstall-chroot.sh"
+chroot $BUILDFS /bin/bash -c "/.build/postinstall-chroot.sh"
 
 # run post configure script hook ?
-if [ -x "$ROOTFS/.build/scripts/post-configure.sh" ]; then
+if [ -x "$BUILDFS/.build/scripts/post-configure.sh" ]; then
     echo "hook [post-configure]"
-    $ROOTFS/.build/scripts/post-configure.sh
+    $BUILDFS/.build/scripts/post-configure.sh
 fi
 
 # move initramfs
-mv $ROOTFS/boot/initramfs.img $BOOTFS/initramfs.img
+mv $BUILDFS/boot/initramfs.img $BOOTFS/initramfs.img
 
 # move kernel (if exists)
-if [ -f $ROOTFS/vmlinuz ]; then
-    cp $ROOTFS/vmlinuz $BOOTFS/kernel.img
+if [ -f $BUILDFS/vmlinuz ]; then
+    cp $BUILDFS/vmlinuz $BOOTFS/kernel.img
 fi
 
 # cleanup stock kernel, initramfs
-rm $ROOTFS/vmlinuz*
-rm $ROOTFS/initrd*
-rm $ROOTFS/boot/*
+rm $BUILDFS/vmlinuz*
+rm $BUILDFS/initrd*
+rm $BUILDFS/boot/*
 
 # cleanup setup dir
-rm -rf $ROOTFS/.build
-rm -rf $ROOTFS/etc/initramfs-tools
+rm -rf $BUILDFS/.build
+rm -rf $BUILDFS/etc/initramfs-tools
 
 # cleanup binaries
 if [ "$CONF_ARCH" == "armel" ]; then
-    rm $ROOTFS/usr/bin/qemu-*
+    rm $BUILDFS/usr/bin/qemu-*
 fi
 
 # create squashfs
-mksquashfs $ROOTFS $BOOTFS/system.img -comp lzo
+mksquashfs $BUILDFS $BOOTFS/system.img -comp lzo

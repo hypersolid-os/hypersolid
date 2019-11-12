@@ -38,25 +38,25 @@ mkdir -p $TMP_DIR/{bootfs,rootfs,buildfs}
 # -------------------------------------------------
 echo "adding multistrap configuration"
 mkdir -p $TMP_DIR/buildfs/etc/multistrap
-cp -R multistrap/* $TMP_DIR/buildfs/etc/multistrap
+cp -R multistrap/. $TMP_DIR/buildfs/etc/multistrap
 cp $TARGET_DIR/multistrap.ini $TMP_DIR/buildfs/etc/multistrap
 
 # copy initramfs config
 # -------------------------------------------------
 echo "adding initramfs configuration"
 mkdir -p $TMP_DIR/rootfs/etc/initramfs-tools
-cp -R initramfs/* $TMP_DIR/rootfs/etc/initramfs-tools
+cp -R initramfs/. $TMP_DIR/rootfs/etc/initramfs-tools
 
 # copy postsetup script
 # -------------------------------------------------
 echo "adding postsetup scripts"
 mkdir -p $TMP_DIR/rootfs/.build
-cp -R postsetup/* $TMP_DIR/rootfs/.build
+cp -R postsetup/. $TMP_DIR/rootfs/.build
 
 # copy generic rootfs files
 # -------------------------------------------------
 echo "adding generic root file system"
-cp -R rootfs/* $TMP_DIR/rootfs/
+cp -R rootfs/. $TMP_DIR/rootfs/
 
 # copy target files
 # -------------------------------------------------
@@ -66,7 +66,6 @@ cp -R $TARGET_DIR/bootfs $TMP_DIR
 cp -R $TARGET_DIR/scripts $TMP_DIR/rootfs/.build/scripts
 cp -R $TARGET_DIR/config $TMP_DIR/rootfs/.build/config
 
-ls -all $TMP_DIR
 # build image
 echo "building build-system"
 docker build $DOCKER_BUILD_OPTS \
@@ -93,7 +92,7 @@ docker run \
     hypersolid-build
 
 # copy files
-docker cp hypersolid-env:/home/build/boot/ $BASEDIR/dist/
+docker cp hypersolid-env:/opt/bootfs/ $BASEDIR/dist/
 
 # success
 exit 0

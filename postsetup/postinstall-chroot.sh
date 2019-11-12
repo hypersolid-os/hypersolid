@@ -17,7 +17,13 @@ systemctl disable console-setup
 systemctl disable apt-daily.timer
 systemctl disable apt-daily.service
 
+# enable first-boot service
+systemctl enable firstboot.service
+
 # systemctl disable systemd-timesyncd
+
+# remove ssh keys
+rm /etc/ssh/ssh_host_*
 
 # run console setup
 setupcon --save-only

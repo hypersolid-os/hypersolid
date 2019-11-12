@@ -1,0 +1,5 @@
+# swap partition
+PARTLABEL=swap        none    swap    sw        0  0
+
+# data partition
+PARTLABEL=data        /srv    ext4    defaults  0  1

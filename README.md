@@ -42,13 +42,13 @@ Run `hypersolid.sh <targetdir>`
 **Build**
 
 ```bash
-$ ./hypersolid.sh targets/raspberrypi-zero-w/
+$ ./hypersolid targets/raspberrypi-zero-w/
 ```
 
 How it works
 --------------------
 
-1. hypersolid builds a docker container named `hypersolid-build` which isolated the build process from the host systems
+1. hypersolid builds a docker container named `hypersolid-build` which isolates the build process from the host systems
 2. docker container based on a standard debian image
 
 

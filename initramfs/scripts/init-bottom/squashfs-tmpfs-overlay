@@ -64,8 +64,8 @@ PERSISTENT_STORAGE=
 # process entries linewise
 for ARG in $(cat /proc/cmdline); do
     case ${ARG} in
-        persistent_storage=*)
-            PERSISTENT_STORAGE=${ARG#persistent_storage=}
+        pstorage=*)
+            PERSISTENT_STORAGE=${ARG#pstorage=}
             ;;
     esac
 done
@@ -178,7 +178,13 @@ secure_mkdir ${OVERLAY_UPPER}/boot
 secure_mv_mount ${rootmnt} ${OVERLAY_UPPER}/boot
 
 # mount squashfs rootfs
-losetup /dev/loop0 ${OVERLAY_UPPER}/boot/${SQUAHSFS_IMG}
+# system image mounted into initramfs ?
+if [ -f /${SQUAHSFS_IMG} ]; then
+    losetup /dev/loop0 /${SQUAHSFS_IMG}
+else
+    # provided via boot partition ?
+    losetup /dev/loop0 ${OVERLAY_UPPER}/boot/${SQUAHSFS_IMG}
+fi
 secure_mount "squashfs" /dev/loop0 ${MNT_SQUASHFS}
 
 # ############################################################################
@@ -192,7 +198,7 @@ if [ -z "$PERSISTENT_STORAGE" ]; then
 
 else
     # mount persistent storage
-    secure_mount "ext4" ${PERSISTENT_STORAGE} ${MNT_STORAGE} "noatime,ro "
+    secure_mount "ext4" ${PERSISTENT_STORAGE} ${MNT_STORAGE} "noatime,rw "
 
     # create overlay mount with persistent storage
     secure_mount "overlay" overlay ${rootmnt} "lowerdir=${MNT_STORAGE}:${MNT_SQUASHFS},upperdir=${OVERLAY_UPPER},workdir=${OVERLAY_WORK}" 
