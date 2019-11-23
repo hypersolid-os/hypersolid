@@ -13,9 +13,18 @@ WORKINGDIR="$(pwd)"
 # assign target dir
 TARGET_DIR=$WORKINGDIR/$1
 
+# assign dist dir to copy files
+DIST_DIR=$WORKINGDIR/dist
+
 # Check directory
 if [ ! -d "$TARGET_DIR" ]; then
   echo "target [$1] does not exists!"
+  exit 1
+fi
+
+# Check directory
+if [ ! -d "$DIST_DIR" ]; then
+  echo "dist directory [$DIST_DIR] does not exists!"
   exit 1
 fi
 
