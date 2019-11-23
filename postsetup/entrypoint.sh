@@ -89,3 +89,9 @@ fi
 
 # create squashfs
 mksquashfs $BUILDFS $BOOTFS/system.img -comp lzo
+
+# run post build script hook ?
+if [ -x "$BUILDFS/.build/scripts/post-build.sh" ]; then
+    echo "hook [post-build]"
+    $BUILDFS/.build/scripts/post-build.sh
+fi

@@ -8,19 +8,20 @@ DOCKER_BUILD_OPTS=""
 
 # basedir
 BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+WORKINGDIR="$(pwd)"
+
+# assign target dir
+TARGET_DIR=$WORKINGDIR/$1
 
 # Check directory
-if [ ! -d "$BASEDIR/$1" ]; then
+if [ ! -d "$TARGET_DIR" ]; then
   echo "target [$1] does not exists!"
   exit 1
 fi
 
-# assign target dir
-TARGET_DIR=$1
-
 # Check config file
-if [ ! -f "$BASEDIR/$1/config" ]; then
-  echo "target config [$1] does not exists!"
+if [ ! -f "$TARGET_DIR/config" ]; then
+  echo "target config [$TARGET_DIR=] does not exists!"
   exit 1
 fi
 
@@ -38,25 +39,25 @@ mkdir -p $TMP_DIR/{bootfs,rootfs,buildfs}
 # -------------------------------------------------
 echo "adding multistrap configuration"
 mkdir -p $TMP_DIR/buildfs/etc/multistrap
-cp -R multistrap/. $TMP_DIR/buildfs/etc/multistrap
+cp -R $BASEDIR/multistrap/. $TMP_DIR/buildfs/etc/multistrap
 cp $TARGET_DIR/multistrap.ini $TMP_DIR/buildfs/etc/multistrap
 
 # copy initramfs config
 # -------------------------------------------------
 echo "adding initramfs configuration"
 mkdir -p $TMP_DIR/rootfs/etc/initramfs-tools
-cp -R initramfs/. $TMP_DIR/rootfs/etc/initramfs-tools
+cp -R $BASEDIR/initramfs/. $TMP_DIR/rootfs/etc/initramfs-tools
 
 # copy postsetup script
 # -------------------------------------------------
 echo "adding postsetup scripts"
 mkdir -p $TMP_DIR/rootfs/.build
-cp -R postsetup/. $TMP_DIR/rootfs/.build
+cp -R $BASEDIR/postsetup/. $TMP_DIR/rootfs/.build
 
 # copy generic rootfs files
 # -------------------------------------------------
 echo "adding generic root file system"
-cp -R rootfs/. $TMP_DIR/rootfs/
+cp -R $BASEDIR/rootfs/. $TMP_DIR/rootfs/
 
 # copy target files
 # -------------------------------------------------
@@ -65,6 +66,12 @@ cp -R $TARGET_DIR/rootfs $TMP_DIR
 cp -R $TARGET_DIR/bootfs $TMP_DIR
 cp -R $TARGET_DIR/scripts $TMP_DIR/rootfs/.build/scripts
 cp -R $TARGET_DIR/config $TMP_DIR/rootfs/.build/config
+
+# custom module file available ?
+if [ -f $TARGET_DIR/modules ]; then
+    echo "adding custom initramfs module config"
+    cp $TARGET_DIR/modules $TMP_DIR/rootfs/etc/initramfs-tools/modules
+fi
 
 # build image
 echo "building build-system"

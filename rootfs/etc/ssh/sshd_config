@@ -1,5 +1,5 @@
 # What ports, IPs and protocols we listen for
-Port 43168
+Port 22
 
 # Use Only v2 Protocol
 Protocol 2

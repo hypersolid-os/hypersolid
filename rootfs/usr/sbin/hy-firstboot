@@ -2,6 +2,8 @@
 
 set -e
 
+export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true
+
 # persistent storage dir
 PSTORAGE_MOUNT=/mnt/storage
 
@@ -18,12 +20,9 @@ fi
 echo "generating ssh host keys.."
 dpkg-reconfigure openssh-server
 mkdir -p $PSTORAGE_MOUNT/etc/ssh
-mv /etc/ssh/ssh_host_* $PSTORAGE_MOUNT/etc/ssh
+cp /etc/ssh/ssh_host_* $PSTORAGE_MOUNT/etc/ssh
 
 # disable service by masking it
 # ------------------------------
 mkdir -p $PSTORAGE_MOUNT/etc/systemd/system/
-ln -s /dev/null $PSTORAGE_MOUNT/etc/systemd/system/firstboot.service
-
-# enforce reboot
-reboot
+ln -s /dev/null $PSTORAGE_MOUNT/etc/systemd/system/hy-firstboot.service

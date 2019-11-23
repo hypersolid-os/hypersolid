@@ -3,11 +3,20 @@
 export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true
 export LC_ALL=C LANGUAGE=C LANG=C
 
+# run pre configure script hook ?
+if [ -x "/.build/scripts/pre-chroot.sh" ]; then
+    echo "hook [pre-chroot]"
+    /.build/scripts/pre-chroot.sh
+fi
+
 # run dash hook
 /var/lib/dpkg/info/dash.preinst install
 
 # configure packages
 dpkg --configure -a
+
+# generate locales
+locale-gen
 
 # set default target
 systemctl set-default multi-user.target
@@ -18,9 +27,7 @@ systemctl disable apt-daily.timer
 systemctl disable apt-daily.service
 
 # enable first-boot service
-systemctl enable firstboot.service
-
-# systemctl disable systemd-timesyncd
+systemctl enable hy-firstboot.service
 
 # remove ssh keys
 rm /etc/ssh/ssh_host_*

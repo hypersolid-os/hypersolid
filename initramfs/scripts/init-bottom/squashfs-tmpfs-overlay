@@ -5,7 +5,7 @@
 #                         SQUASHFS ROOT with tmpfs overlay                          #
 #                          and optional persistent storage                          #
 #                                                                                   #
-#           Copyright (C) 2018 Andi Dittrich <https://andidittrich.de>              #
+#        Copyright (C) 2018-2019 Andi Dittrich <https://andidittrich.de>            #
 #                                                                                   #
 # ISSUES: https://github.com/AndiDittrich/hypersolid                                #
 # LICENSE: GNU General Public License 2                                             #
@@ -180,7 +180,8 @@ secure_mv_mount ${rootmnt} ${OVERLAY_UPPER}/boot
 # mount squashfs rootfs
 # system image mounted into initramfs ?
 if [ -f /${SQUAHSFS_IMG} ]; then
-    losetup /dev/loop0 /${SQUAHSFS_IMG}
+    mv /${SQUAHSFS_IMG} ${MNT_TMPFS}/${SQUAHSFS_IMG}
+    losetup /dev/loop0 ${MNT_TMPFS}/${SQUAHSFS_IMG}
 else
     # provided via boot partition ?
     losetup /dev/loop0 ${OVERLAY_UPPER}/boot/${SQUAHSFS_IMG}

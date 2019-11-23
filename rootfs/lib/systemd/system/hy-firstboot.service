@@ -12,7 +12,7 @@ After=local-fs.target
 DefaultDependencies=no
 
 [Service]
-ExecStart=/usr/sbin/firstboot
+ExecStart=/usr/sbin/hy-firstboot
 
 # Just Execute the shell script
 Type=oneshot
