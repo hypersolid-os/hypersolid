@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+
+VERSION="1.0.0"
+
+show_usage(){
+    cat << EOF
+Usage: pstorage <command> [args...]
+  Commands:
+    view|ls                     Show all files within the persistent storage mount
+    rw                          Remount the persistent storage parition as writeable
+    ro                          Remount the persistent storage parition as readonly
+    --help                      Displays this help
+    --version                   Displays version
+EOF
+    exit 0
+}
+
+show_version(){
+    cat << EOF
+pstorage
+ - Version: ${VERSION}
+ - License: GPL-2.0 https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+EOF
+    exit 0
+}
+
+# simple processing
+[ "$1" = "--help" ] && show_usage
+[ "$1" = "--version" ] && show_version
+
+# current working dir
+WORKING_DIR="$(pwd)"
+
+# basedir
+BASEDIR="$( cd "$( dirname "$(realpath $BASH_SOURCE[0])" )" && pwd )"
+
+# locations
+PSTORAGE_MOUNT=/mnt/storage
+
+# command provided ?
+if [ -z "$1" ]; then
+    show_usage
+fi
+
+# pstorage mounted ?
+# ----------------------------------------------
+function isStorageMounted(){
+    # mountpoint exists ?
+    mountpoint -q $PSTORAGE_MOUNT || {
+        echo "ERROR: persistent storage not mounted"
+        exit 1
+    }
+}
+
+# view persistent files
+# ----------------------------------------------
+function viewFiles(){
+    # ensure storage is mounted
+    isStorageMounted
+
+    # display files
+    tree $PSTORAGE_MOUNT
+}
+
+# remount read/write
+# ----------------------------------------------
+function remountRW(){
+    # ensure storage is mounted
+    isStorageMounted
+
+    # remount
+    mount -o remount,rw $PSTORAGE_MOUNT && {
+        echo "persistent storage $PSTORAGE_MOUNT is WRITEABLE"
+    } || {
+        echo "ERROR: persistent storage $PSTORAGE_MOUNT is NOT WRITEABLE"
+        exit 1
+    }
+}
+
+# remount readonly
+# ----------------------------------------------
+function remountRO(){
+    # ensure storage is mounted
+    isStorageMounted
+
+    # remount
+    mount -o remount,ro $PSTORAGE_MOUNT && {
+        echo "persistent storage $PSTORAGE_MOUNT is now READONLY"
+    } || {
+        echo "ERROR: cannot set persistent storage $PSTORAGE_MOUNT to READONLY"
+        exit 1
+    }
+}
+
+# Command Dispatching
+# ---------------------------------------
+case "$1" in
+    view|ls)
+        viewFiles
+        exit 0
+    ;;
+    rw)
+        remountRW
+        exit 0
+    ;;
+    ro)
+        remountRO
+        exit 0
+    ;;
+
+    *)
+        show_usage
+        exit 1
+    ;;
+esac

@@ -82,7 +82,14 @@ if [ -f $TARGET_DIR/modules ]; then
     cp $TARGET_DIR/modules $TMP_DIR/rootfs/etc/initramfs-tools/modules
 fi
 
+# custom initramfs config available ?
+if [ -d $TARGET_DIR/initramfs.conf.d ]; then
+    echo "adding custom initramfs config"
+    cp -R $TARGET_DIR/initramfs.conf.d/. $TMP_DIR/rootfs/etc/initramfs-tools/conf.d
+fi
+
 # build image
+# -------------------------------------------------
 echo "building build-system"
 docker build $DOCKER_BUILD_OPTS \
     -t hypersolid-build \
@@ -108,7 +115,7 @@ docker run \
     hypersolid-build
 
 # copy files
-docker cp hypersolid-env:/opt/bootfs/ $BASEDIR/dist/
+docker cp hypersolid-env:/opt/bootfs/ $DIST_DIR/
 
 # success
 exit 0
