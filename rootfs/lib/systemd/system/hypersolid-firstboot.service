@@ -12,7 +12,7 @@ After=local-fs.target
 DefaultDependencies=no
 
 [Service]
-ExecStart=/usr/sbin/hy-firstboot
+ExecStart=/usr/sbin/hypersolid-firstboot
 
 # Just Execute the shell script
 Type=oneshot

@@ -25,4 +25,4 @@ cp /etc/ssh/ssh_host_* $PSTORAGE_MOUNT/etc/ssh
 # disable service by masking it
 # ------------------------------
 mkdir -p $PSTORAGE_MOUNT/etc/systemd/system/
-ln -s /dev/null $PSTORAGE_MOUNT/etc/systemd/system/hy-firstboot.service
+ln -s /dev/null $PSTORAGE_MOUNT/etc/systemd/system/hypersolid-firstboot.service
