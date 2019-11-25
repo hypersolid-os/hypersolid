@@ -4,9 +4,3 @@ loop
 overlay
 squashfs
 ext4
-virtio
-virtio_pci
-virtio_ring
-virtio_net
-virtio_blk
-virtio_scsi

@@ -27,7 +27,7 @@ systemctl disable apt-daily.timer
 systemctl disable apt-daily.service
 
 # enable first-boot service
-systemctl enable hy-firstboot.service
+systemctl enable hypersolid-firstboot.service
 
 # remove ssh keys
 rm /etc/ssh/ssh_host_*

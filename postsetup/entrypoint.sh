@@ -52,7 +52,7 @@ if [ "$CONF_ARCH" == "armel" ]; then
     update-binfmts --enable
 
     # copy qemu binaries
-    cp /usr/bin/qemu-arm-static /home/build/buildfs/usr/bin/
+    cp /usr/bin/qemu-arm-static $BUILDFS/usr/bin/
 fi
 
 # chroot into fs (emulated mode)
@@ -73,22 +73,16 @@ if [ -f $BUILDFS/vmlinuz ]; then
     cp $BUILDFS/vmlinuz $BOOTFS/kernel.img
 fi
 
-# cleanup stock kernel, initramfs
-rm $BUILDFS/vmlinuz*
-rm $BUILDFS/initrd*
-rm $BUILDFS/boot/*
-
-# cleanup setup dir
-rm -rf $BUILDFS/.build
-rm -rf $BUILDFS/etc/initramfs-tools
-
-# cleanup binaries
-if [ "$CONF_ARCH" == "armel" ]; then
-    rm $BUILDFS/usr/bin/qemu-*
-fi
-
 # create squashfs
-mksquashfs $BUILDFS $BOOTFS/system.img -comp lzo
+mksquashfs $BUILDFS $BOOTFS/system.img \
+    -comp lzo \
+    -e \
+        $BUILDFS/boot \
+        $BUILDFS/.build \
+        $BUILDFS/etc/initramfs-tools \
+        $BUILDFS/usr/bin/qemu-* \
+        $BUILDFS/vmlinuz* \
+        $BUILDFS/initrd*
 
 # run post build script hook ?
 if [ -x "$BUILDFS/.build/scripts/post-build.sh" ]; then
