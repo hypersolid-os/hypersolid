@@ -38,6 +38,9 @@ setupcon --save-only
 # get last recent kernel version based on lib/modules
 ls -1 /lib/modules | sort -r | head -n1 > /etc/kernel_version
 
+# print info
+echo "kernel version: $(cat /etc/kernel_version)"
+
 # create initramfs
 mkinitramfs -o /boot/initramfs.img -v "$(cat /etc/kernel_version)"
 
