@@ -7,7 +7,7 @@
 #                                                                                   #
 #        Copyright (C) 2018-2019 Andi Dittrich <https://andidittrich.de>            #
 #                                                                                   #
-# ISSUES: https://github.com/AndiDittrich/hypersolid                                #
+# ISSUES: https://github.com/hypersolid-os/hypersolid                               #
 # LICENSE: GNU General Public License 2                                             #
 #                                                                                   #
 # hypersolid comes with ABSOLUTELY NO WARRANTY.                                     #
@@ -32,6 +32,9 @@ esac
 . /scripts/functions
 # Begin real processing below this line
 
+# breakpoint
+maybe_break hypersolid_fs_top
+
 log_begin_msg "[hypersolid] initializing merged root-file-system with tmpfs overlay"
 
 # ############################################################################
@@ -39,42 +42,17 @@ log_begin_msg "[hypersolid] initializing merged root-file-system with tmpfs over
 # ############################################################################
 
 # filename of the squashfs image file on root partition
-SQUAHSFS_IMG=system.img
+SQUAHSFS_IMG_FILE=system.img
 
 # mount points
-MNT_SQUASHFS=/mnt/system
+MNT_SYSTEM=/mnt/system
+MNT_SQUASHFS=/mnt/rootfs
 MNT_TMPFS=/mnt/tmpfs
 MNT_STORAGE=/mnt/storage
 
 # overlayfs directories
 OVERLAY_WORK=$MNT_TMPFS/.work
 OVERLAY_UPPER=$MNT_TMPFS/.upper
-
-# kernel params
-PERSISTENT_STORAGE=
-
-# ############################################################################
-# KERNEL PARAMS
-# ############################################################################
-
-# VARS
-# ${ROOT} the root device (kernel param). /dev/mmcblk0p1
-# ${rootmnt} the mount point of the final root file system. /root
-
-# process entries linewise
-for ARG in $(cat /proc/cmdline); do
-    case ${ARG} in
-        pstorage=*)
-            PERSISTENT_STORAGE=${ARG#pstorage=}
-            ;;
-    esac
-done
-
-# persistent storage device exists ?
-if [ ! -e "$PERSISTENT_STORAGE" ]; then
-    log_failure_msg "[hypersolid] persistent storage device $PERSISTENT_STORAGE not exists"
-    PERSISTENT_STORAGE=
-fi
 
 # ############################################################################
 # UTILITY
@@ -83,13 +61,9 @@ fi
 # check exit code - throw failure message in case of error
 secure_mkdir(){
     # create directory tree
-    mkdir -p $1
-
-    # error ?
-    if [ $? -ne 0 ]; then
-        log_failure_msg "[hypersolid] failed to create dirrectory $1"
-        exit 0
-    fi
+    mkdir -p $1 || {
+        panic "[hypersolid] failed to create directory $1"
+    }
 }
 
 # move mount - throw failure message in case of error
@@ -97,13 +71,9 @@ secure_mkdir(){
 # $2: destination
 secure_mv_mount(){
     # move $1 to $2
-    mount -o move $1 $2
-
-    # error ?
-    if [ $? -ne 0 ]; then
-        log_failure_msg "[hypersolid] failed to move mount ${1} to ${2}"
-        exit 0
-    fi
+    mount -o move $1 $2 || {
+        panic "[hypersolid] failed to move mount ${1} to ${2}"
+    }
 }
 
 # mount filesystem - throw failure message in case of error
@@ -123,8 +93,7 @@ secure_mount(){
 
     # error ?
     if [ $? -ne 0 ]; then
-        log_failure_msg "[hypersolid] failed to mount $2:$1 on $3 - ($4)"
-        exit 0
+        panic "[hypersolid] failed to mount $2:$1 on $3 - ($4)"
     fi
 }
 
@@ -138,8 +107,8 @@ secure_mkdir ${MNT_SQUASHFS}
 # create MNT_TMPFS mount within init rootfs
 secure_mkdir ${MNT_TMPFS}
 
-# create MNT_STORAGE mount within init rootfs
-secure_mkdir ${MNT_STORAGE}
+# create MNT_SYSTEM mount within init rootfs
+secure_mkdir ${MNT_SYSTEM}
 
 # ############################################################################
 # Stage 2 - Create TMPFS
@@ -158,6 +127,9 @@ secure_mkdir ${OVERLAY_UPPER}
 # Stage 3 - create mount points within final tmpfs
 # ############################################################################
 
+# create MNT_SYSTEM mount
+secure_mkdir ${OVERLAY_UPPER}${MNT_SYSTEM}
+
 # create MNT_SQUASHFS mount
 secure_mkdir ${OVERLAY_UPPER}${MNT_SQUASHFS}
 
@@ -174,18 +146,37 @@ secure_mkdir ${OVERLAY_UPPER}/boot
 # Stage 4 - initialize squashfs
 # ############################################################################
 
-# move root mount (/dev/mmcblk0p1) into /boot
-secure_mv_mount ${rootmnt} ${OVERLAY_UPPER}/boot
+# system image mounted into initramfs ?
+if [ -f /${SQUAHSFS_IMG_FILE} ]; then
+    mv /${SQUAHSFS_IMG_FILE} ${MNT_TMPFS}/${SQUAHSFS_IMG_FILE}
+
+    # initialize loopback
+    losetup /dev/loop0 ${MNT_TMPFS}/${SQUAHSFS_IMG_FILE} || {
+        panic "[hypersolid] cannot initialize loopback device of ${MNT_TMPFS}/${SQUAHSFS_IMG_FILE}"
+    }
+
+# system image on dedicated rootmnt parition ?
+else
+    # system partition mounted ?
+    mountpoint -q ${rootmnt} || {
+        panic "[hypersolid] system partition ${rootmnt} not mounted"
+    }
+
+    # move system partition
+    secure_mv_mount ${rootmnt} ${MNT_SYSTEM}
+
+    # image file provided via system partition ?
+    [ -f ${MNT_SYSTEM}/${SQUAHSFS_IMG_FILE} ] || {
+        panic "[hypersolid] system image not found in ${MNT_SYSTEM}/${SQUAHSFS_IMG_FILE}"
+    }
+
+    # initialize loopback
+    losetup /dev/loop0 ${MNT_SYSTEM}/${SQUAHSFS_IMG_FILE} || {
+        panic "[hypersolid] cannot initialize loopback device of ${MNT_SYSTEM}/${SQUAHSFS_IMG_FILE}"
+    }
+fi
 
 # mount squashfs rootfs
-# system image mounted into initramfs ?
-if [ -f /${SQUAHSFS_IMG} ]; then
-    mv /${SQUAHSFS_IMG} ${MNT_TMPFS}/${SQUAHSFS_IMG}
-    losetup /dev/loop0 ${MNT_TMPFS}/${SQUAHSFS_IMG}
-else
-    # provided via boot partition ?
-    losetup /dev/loop0 ${OVERLAY_UPPER}/boot/${SQUAHSFS_IMG}
-fi
 secure_mount "squashfs" /dev/loop0 ${MNT_SQUASHFS}
 
 # ############################################################################
@@ -193,35 +184,36 @@ secure_mount "squashfs" /dev/loop0 ${MNT_SQUASHFS}
 # ############################################################################
 
 # persistent storage set ?
-if [ -z "$PERSISTENT_STORAGE" ]; then 
-    # create overlay mount
-    secure_mount "overlay" overlay ${rootmnt} "lowerdir=${MNT_SQUASHFS},upperdir=${OVERLAY_UPPER},workdir=${OVERLAY_WORK}"
-
-else
-    # mount persistent storage
-    secure_mount "ext4" ${PERSISTENT_STORAGE} ${MNT_STORAGE} "noatime,rw "
-
+mountpoint -q ${MNT_STORAGE} && {
     # create overlay mount with persistent storage
     secure_mount "overlay" overlay ${rootmnt} "lowerdir=${MNT_STORAGE}:${MNT_SQUASHFS},upperdir=${OVERLAY_UPPER},workdir=${OVERLAY_WORK}" 
-fi
+
+} || {
+    # create overlay mount without second storage layer
+    secure_mount "overlay" overlay ${rootmnt} "lowerdir=${MNT_SQUASHFS},upperdir=${OVERLAY_UPPER},workdir=${OVERLAY_WORK}"
+}
 
 # ############################################################################
 # Stage 6 - move mount points into final root fs
 # ############################################################################
 
-# move root mount (/dev/mmcblk0p1) into overlayfs /boot
-secure_mv_mount ${OVERLAY_UPPER}/boot ${rootmnt}/boot
-
 # move tmpfs mount into final rootfs
 secure_mv_mount ${MNT_TMPFS} ${rootmnt}${MNT_TMPFS}
+
+# move system mount into final rootfs
+mountpoint -q ${MNT_SYSTEM} && secure_mv_mount ${MNT_SYSTEM} ${rootmnt}${MNT_SYSTEM}
+
+# move persistent storage mount into final rootfs
+mountpoint -q ${MNT_STORAGE} && secure_mv_mount ${MNT_STORAGE} ${rootmnt}${MNT_STORAGE}
 
 # move squashfs mount into final rootfs
 secure_mv_mount ${MNT_SQUASHFS} ${rootmnt}${MNT_SQUASHFS}
 
-# move persistent storage mount into final rootfs
-[ -z "$PERSISTENT_STORAGE" ] || secure_mv_mount ${MNT_STORAGE} ${rootmnt}${MNT_STORAGE}
-
 # ############################################################################
 
 log_end_msg
+
+# breakpoint
+maybe_break hypersolid_fs_bottom
+
 exit 0

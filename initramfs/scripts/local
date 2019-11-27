@@ -1,0 +1,268 @@
+# Local filesystem mounting                     -*- shell-script -*-
+
+# call order (see init):
+# -/scripts/init-premount
+# 1. mount_top
+# 2. mount_premount
+# 3. mountroot
+# 4. mount_bottom
+# 5. nfs_bottom
+# 6. local_bottom
+# -/scripts/init-bottom
+
+# process entries linewise
+for ARG in $(cat /proc/cmdline); do
+    case ${ARG} in
+        # persistent storage; resolve UUID LABEL PARTLABEL PARTUUID
+        pstorage=*)
+            PERSISTENT_STORAGE=${ARG#pstorage=}
+            ;;
+    esac
+done
+
+# Check a file system. Removed spinner - "unknown option -C"
+# $1=device
+# $2=mountpoint (for diagnostics only)
+# $3=type (may be "auto")
+_checkfs_fix(){
+    DEV="$1"
+    NAME="$2"
+    TYPE="$3"
+    if [ "$NAME" = "/" ] ; then
+            NAME="root"
+    fi
+    FSCK_LOGFILE=/run/initramfs/fsck.log
+    FSCK_STAMPFILE=/run/initramfs/fsck-${NAME#/}
+
+    if [ "${TYPE}" = "auto" ]; then
+            TYPE="$(get_fstype "${DEV}")"
+    fi
+
+    FSCKCODE=0
+    if [ -z "${TYPE}" ]; then
+            log_warning_msg "Type of $NAME file system is unknown, so skipping check."
+            return
+    fi
+    if ! command -v fsck >/dev/null 2>&1; then
+            log_warning_msg "fsck not present, so skipping $NAME file system"
+            return
+    fi
+    if [ "${fastboot?}" = "y" ] ; then
+            log_warning_msg "Fast boot enabled, so skipping $NAME file system check."
+            return
+    fi
+
+    if [ "${forcefsck?}" = "y" ]
+    then
+            force="-f"
+    else
+            force=""
+    fi
+
+    if [ "${fsckfix?}" = "y" ]
+    then
+            fix="-y"
+    elif [ "${fsckfix?}" = "n" ]
+    then
+            fix="-n"
+    else
+            fix="-a"
+    fi
+
+    log_begin_msg "Checking $NAME file system"
+    logsave -a -s $FSCK_LOGFILE fsck $force $fix -T -t "$TYPE" "$DEV"
+    FSCKCODE=$?
+    log_end_msg
+
+    # NOTE: "failure" is defined as exiting with a return code of
+    # 4, possibly or-ed with other flags. A return code of 1
+    # indicates that file system errors were corrected but that
+    # the boot may proceed.
+    #
+    if [ "$FSCKCODE" -eq 32 ]
+    then
+            log_warning_msg "File system check was interrupted by user"
+    elif [ $((FSCKCODE & 4)) -eq 4 ]
+    then
+            log_failure_msg "File system check of the $NAME filesystem failed"
+            return 1
+    elif [ "$FSCKCODE" -gt 1 ]
+    then
+            log_warning_msg "File system check failed but did not detect errors"
+            sleep 5
+    else
+            true > $FSCK_STAMPFILE
+    fi
+    return 0
+}
+
+# $1=device ID to mount
+# $2=optionname (for root and etc)
+# $3=panic if device is missing (true or false, default: true)
+# Sets $DEV to the resolved device node
+local_device_setup(){
+    local dev_id="$1"
+    local name="$2"
+    local may_panic="${3:-true}"
+    local real_dev
+    local time_elapsed
+    local count
+
+    wait_for_udev 10
+
+    # Load ubi with the correct MTD partition and return since fstype
+    # doesn't work with a char device like ubi.
+    if [ -n "$UBIMTD" ]; then
+            modprobe ubi "mtd=$UBIMTD"
+            DEV="${dev_id}"
+            return
+    fi
+
+    # Don't wait for a device that doesn't have a corresponding
+    # device in /dev and isn't resolvable by blkid (e.g. mtd0)
+    if [ "${dev_id#/dev}" = "${dev_id}" ] &&
+        [ "${dev_id#*=}" = "${dev_id}" ]; then
+            DEV="${dev_id}"
+            return
+    fi
+
+    # If the root device hasn't shown up yet, give it a little while
+    # to allow for asynchronous device discovery (e.g. USB).  We
+    # also need to keep invoking the local-block scripts in case
+    # there are devices stacked on top of those.
+    if ! real_dev=$(resolve_device "${dev_id}") ||
+        ! get_fstype "${real_dev}" >/dev/null; then
+            log_begin_msg "Waiting for ${name}"
+
+            # Timeout is max(30, rootdelay) seconds (approximately)
+            slumber=30
+            if [ "${ROOTDELAY:-0}" -gt $slumber ]; then
+                    slumber=$ROOTDELAY
+            fi
+
+            while true; do
+                    sleep 1
+                    time_elapsed="$(cat /proc/uptime)"
+                    time_elapsed="${time_elapsed%%[. ]*}"
+                    time_elapsed=$((time_elapsed - local_top_time))
+
+                    if real_dev=$(resolve_device "${dev_id}") &&
+                        get_fstype "${real_dev}" >/dev/null; then
+                            wait_for_udev 10
+                            log_end_msg 0
+                            break
+                    fi
+                    if [ ${time_elapsed} -ge "${slumber}" ]; then
+                            log_end_msg 1 || true
+                            break
+                    fi
+            done
+    fi
+
+    # We've given up, but we'll let the user fix matters if they can
+    while ! real_dev=$(resolve_device "${dev_id}") ||
+            ! get_fstype "${real_dev}" >/dev/null; do
+            if ! $may_panic; then
+                    echo "Gave up waiting for ${name}"
+                    return 1
+            fi
+            echo "Gave up waiting for ${name} device.  Common problems:"
+            echo " - Boot args (cat /proc/cmdline)"
+            echo "   - Check rootdelay= (did the system wait long enough?)"
+            if [ "${name}" = root ]; then
+                    echo "   - Check root= (did the system wait for the right device?)"
+            fi
+            echo " - Missing modules (cat /proc/modules; ls /dev)"
+            panic "ALERT!  ${dev_id} does not exist.  Dropping to a shell!"
+    done
+
+    DEV="${real_dev}"
+}
+
+local_mount_root(){
+    # allow optional root device which contains the system image
+    if [ -z "${ROOT}" ]; then
+        log_warning_msg "[hypersolid] no root device specified. Boot arguments MUST include a root= parameter."
+        return
+    fi
+
+    local_device_setup "${ROOT}" "root file system"
+    ROOT="${DEV}"
+
+    # Get the root filesystem type if not set
+    if [ -z "${ROOTFSTYPE}" ] || [ "${ROOTFSTYPE}" = auto ]; then
+        FSTYPE=$(get_fstype "${ROOT}")
+    else
+        FSTYPE=${ROOTFSTYPE}
+    fi
+
+    _checkfs_fix "${ROOT}" root "${FSTYPE}"
+
+    # Mount root
+    # shellcheck disable=SC2086
+    if ! mount -r ${FSTYPE:+-t "${FSTYPE}"} ${ROOTFLAGS} "${ROOT}" "${rootmnt?}"; then
+        panic "[hypersolid] failed to mount ${ROOT} as root file system."
+    fi
+}
+
+local_mount_pstorage(){
+    # allow optional storage device which contains secondary overlay (config)
+    if [ -z "${PERSISTENT_STORAGE}" ]; then
+        log_warning_msg "[hypersolid] no persistent storage device specified."
+        return
+    fi
+
+    local_device_setup "$PERSISTENT_STORAGE" "persistent storage file system"
+    MNT_DEV="${DEV}"
+    MNT_PATH="/mnt/storage"
+    MNT_TYPE=$(get_fstype "${MNT_DEV}")
+    MNT_OPTS="ro,noatime"
+    
+    _checkfs_fix "${MNT_DEV}" "persistent" "${MNT_TYPE}"
+
+    # create mountpoint
+    mkdir -p $MNT_PATH || {
+        panic "[hypersolid] failed to create mount path $MNT_PATH"
+    }
+
+    # Mount filesystem
+    if ! mount -t "${MNT_TYPE}" -o "${MNT_OPTS}" "${MNT_DEV}" "${MNT_PATH}"; then
+        panic "[hypersolid] failed to mount ${MNT_DEV} as persistent storage."
+    fi
+}
+
+mountroot(){
+    local_mount_root
+    :
+}
+
+mount_bottom(){
+    local_mount_pstorage
+    :
+}
+
+# disable all regular mounts
+mount_top(){
+    :
+}
+
+mount_premount(){
+    :
+}
+
+local_top(){
+    :
+}
+
+local_premount(){
+    :
+}
+
+
+local_bottom(){
+    :
+}
+
+local_block(){
+    :
+}

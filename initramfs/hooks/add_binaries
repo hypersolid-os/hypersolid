@@ -14,10 +14,6 @@ prereqs)
 esac
 
 . /usr/share/initramfs-tools/hook-functions
-# Begin real processing below this line
-# required to mount the overlay
-#copy_exec /sbin/lsmod /sbin
-#copy_exec /sbin/losetup /sbin
 
 # fsck file system support
 copy_exec /sbin/logsave /sbin
