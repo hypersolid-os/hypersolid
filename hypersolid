@@ -83,9 +83,9 @@ if [ -f $TARGET_DIR/modules ]; then
 fi
 
 # custom initramfs config available ?
-if [ -d $TARGET_DIR/initramfs.conf.d ]; then
+if [ -d $TARGET_DIR/initramfs ]; then
     echo "adding custom initramfs config"
-    cp -R $TARGET_DIR/initramfs.conf.d/. $TMP_DIR/rootfs/etc/initramfs-tools/conf.d
+    cp -R $TARGET_DIR/initramfs/. $TMP_DIR/rootfs/etc/initramfs-tools
 fi
 
 # build image
