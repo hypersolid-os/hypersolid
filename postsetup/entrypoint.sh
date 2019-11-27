@@ -35,7 +35,16 @@ multistrap \
 cp -R $ROOTFS/. $BUILDFS
 
 # busybox libmusl - just override binary
-wget -O $BUILDFS/bin/busybox https://busybox.net/downloads/binaries/1.31.0-defconfig-multiarch-musl/busybox-x86_64
+case "$CONF_ARCH" in
+        armel)
+            echo "downloading busybox busybox-armv5l"
+            wget -O $BUILDFS/bin/busybox https://busybox.net/downloads/binaries/1.31.0-defconfig-multiarch-musl/busybox-armv5l
+            ;;
+        *)
+            # x86 64 default
+            echo "downloading busybox-x86_64"
+            wget -O $BUILDFS/bin/busybox https://busybox.net/downloads/binaries/1.31.0-defconfig-multiarch-musl/busybox-x86_64
+esac
 
 # run post multistrap script hook ?
 if [ -x "$BUILDFS/.build/scripts/post-multistrap.sh" ]; then
