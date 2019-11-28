@@ -15,6 +15,9 @@ else
     exit 1
 fi
 
+# set storage writeable 
+pstorage rw
+
 # generate unique SSH Keys and store them within pstorage
 # ------------------------------
 echo "generating ssh host keys.."
@@ -26,3 +29,6 @@ cp /etc/ssh/ssh_host_* $PSTORAGE_MOUNT/etc/ssh
 # ------------------------------
 mkdir -p $PSTORAGE_MOUNT/etc/systemd/system/
 ln -s /dev/null $PSTORAGE_MOUNT/etc/systemd/system/hypersolid-firstboot.service
+
+# set storage readonly
+pstorage ro

@@ -16,22 +16,24 @@ TARGET_DIR=$WORKINGDIR/$1
 # assign dist dir to copy files
 DIST_DIR=$WORKINGDIR/dist
 
+# get function utilities
+source $BASEDIR/setup/functions
+
+print_heading " >> hypersolid" '\x1B[1;34m'
+
 # Check directory
 if [ ! -d "$TARGET_DIR" ]; then
-  echo "target [$1] does not exists!"
-  exit 1
+  panic "target [$1] does not exists!"
 fi
 
 # Check directory
 if [ ! -d "$DIST_DIR" ]; then
-  echo "dist directory [$DIST_DIR] does not exists!"
-  exit 1
+  panic "dist directory [$DIST_DIR] does not exists!"
 fi
 
 # Check config file
 if [ ! -f "$TARGET_DIR/config" ]; then
-  echo "target config [$TARGET_DIR=] does not exists!"
-  exit 1
+  panic "target config [$TARGET_DIR=] does not exists!"
 fi
 
 # read config
@@ -39,38 +41,38 @@ source $TARGET_DIR/config
 
 # temp dir
 TMP_DIR=$(mktemp -d)
-echo "Temp Dir: $TMP_DIR"
+log_info "Temp Dir: $TMP_DIR"
 
 # temp dir structure
 mkdir -p $TMP_DIR/{bootfs,rootfs,buildfs}
 
 # copy multistrap config
 # -------------------------------------------------
-echo "adding multistrap configuration"
+log_info "adding multistrap configuration"
 mkdir -p $TMP_DIR/buildfs/etc/multistrap
 cp -R $BASEDIR/multistrap/. $TMP_DIR/buildfs/etc/multistrap
 cp $TARGET_DIR/multistrap.ini $TMP_DIR/buildfs/etc/multistrap
 
 # copy initramfs config
 # -------------------------------------------------
-echo "adding initramfs configuration"
+log_info "adding initramfs configuration"
 mkdir -p $TMP_DIR/rootfs/etc/initramfs-tools
 cp -R $BASEDIR/initramfs/. $TMP_DIR/rootfs/etc/initramfs-tools
 
-# copy postsetup script
+# copy setup script
 # -------------------------------------------------
-echo "adding postsetup scripts"
+log_info "adding setup scripts"
 mkdir -p $TMP_DIR/rootfs/.build
-cp -R $BASEDIR/postsetup/. $TMP_DIR/rootfs/.build
+cp -R $BASEDIR/setup/. $TMP_DIR/rootfs/.build
 
 # copy generic rootfs files
 # -------------------------------------------------
-echo "adding generic root file system"
+log_info "adding generic root file system"
 cp -R $BASEDIR/rootfs/. $TMP_DIR/rootfs/
 
 # copy target files
 # -------------------------------------------------
-echo "adding target specific files"
+log_info "adding target specific files"
 cp -R $TARGET_DIR/rootfs $TMP_DIR
 cp -R $TARGET_DIR/bootfs $TMP_DIR
 cp -R $TARGET_DIR/scripts $TMP_DIR/rootfs/.build/scripts
@@ -78,26 +80,28 @@ cp -R $TARGET_DIR/config $TMP_DIR/rootfs/.build/config
 
 # custom module file available ?
 if [ -f $TARGET_DIR/modules ]; then
-    echo "adding custom initramfs module config"
+    log_info "adding initramfs module config"
     cp $TARGET_DIR/modules $TMP_DIR/rootfs/etc/initramfs-tools/modules
 fi
 
 # custom initramfs config available ?
 if [ -d $TARGET_DIR/initramfs ]; then
-    echo "adding custom initramfs config"
+    log_info "adding custom initramfs config"
     cp -R $TARGET_DIR/initramfs/. $TMP_DIR/rootfs/etc/initramfs-tools
 fi
 
 # build image
 # -------------------------------------------------
-echo "building build-system"
+log_info "building build-system"
 docker build $DOCKER_BUILD_OPTS \
     -t hypersolid-build \
     -f $BASEDIR/Dockerfile \
-    $TMP_DIR
+    $TMP_DIR || {
+        panic "docker build failed"
+    }
 
 # cleanup
-echo "cleaning up temporary directory"
+log_info "cleaning up temporary directory"
 [ -d $TMP_DIR ] && rm -rf $TMP_DIR
 
 # remove old container
@@ -106,16 +110,20 @@ if docker container ls -all | grep -q hypersolid-env; then
 fi
 
 # run build
-echo "executing build scripts"
+log_info "executing build scripts"
 docker run \
     --privileged \
     --tty \
     --interactive \
     --name hypersolid-env \
-    hypersolid-build
+    hypersolid-build || {
+        panic "hypersolid build failed"
+    }
 
 # copy files
 docker cp hypersolid-env:/opt/bootfs/ $DIST_DIR/
+
+print_heading "BUILD READY"
 
 # success
 exit 0
