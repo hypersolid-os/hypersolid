@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-set -x
+# Fail on Error !
+set -e
 
 export BUILDFS=/opt/build
 export ROOTFS=/opt/rootfs
@@ -73,7 +74,7 @@ if [ -x "$BUILDFS/.build/scripts/post-multistrap.sh" ]; then
 fi
 
 # arm ? use emulation
-if [ "$CONF_ARCH" == "armel" ]; then
+if [[ "$CONF_ARCH" =~ ^(armel|armhf|arm64)$ ]]; then
     # mount binfmt_misc
     mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
 
