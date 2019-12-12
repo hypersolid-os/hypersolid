@@ -1,6 +1,45 @@
 #!/usr/bin/env bash
 
-# Fail on Error !
+# _______________________________________________________________
+#
+# ____    _                                     _ _     _ 
+# \ \ \  | |__  _   _ _ __   ___ _ __ ___  ___ | (_) __| |
+#  \ \ \ | '_ \| | | | '_ \ / _ \ '__/ __|/ _ \| | |/ _` |
+#  / / / | | | | |_| | |_) |  __/ |  \__ \ (_) | | | (_| |
+# /_/_/  |_| |_|\__, | .__/ \___|_|  |___/\___/|_|_|\__,_|
+#               |___/|_|                                  
+#
+#_______________________________________________________________
+
+VERSION="0.4.0"
+
+show_usage(){
+    cat << EOF
+Usage: hypersolid <command> [args...]
+  Commands:
+    build <target-directory>       Build to target within the directory
+    deploy <target-directory>      Deploy a already build target using custom deploy script within working dir
+    --help                         Displays this help
+    --version                      Displays version
+EOF
+    exit 0
+}
+
+show_version(){
+    cat << EOF
+hypersolid
+ - Version: ${VERSION}
+ - License: GPL-2.0 https://www.gnu.org/licenses/gpl-2.0.html
+ - Repository: https://github.com/hypersolid-os/hypersolid
+EOF
+    exit 0
+}
+
+# simple processing
+[ "$1" = "--help" ] && show_usage
+[ "$1" = "--version" ] && show_version
+
+# Exit on Error
 set -e
 
 # additional docker build opts
@@ -10,120 +49,201 @@ DOCKER_BUILD_OPTS=""
 BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 WORKINGDIR="$(pwd)"
 
+# extract target name
+TARGET_NAME="$2"
+
 # assign target dir
-TARGET_DIR=$WORKINGDIR/$1
+TARGET_DIR=$WORKINGDIR/$TARGET_NAME
 
 # assign dist dir to copy files
-DIST_DIR=$WORKINGDIR/dist
+DIST_BASEDIR=$WORKINGDIR/dist
+DIST_DIR=$DIST_BASEDIR/$TARGET_NAME
 
 # get function utilities
 source $BASEDIR/setup/functions
 
-print_heading " >> hypersolid" '\x1B[1;34m'
+# intro
+# ---------------------------------------
+function hypersolid_intro(){
+    print_heading " >> hypersolid" '\x1B[1m'
+}
 
-# Check directory
-if [ ! -d "$TARGET_DIR" ]; then
-  panic "target [$1] does not exists!"
-fi
+function hypersolid_disclaimer(){
+    echo ""
+    _print_colorized '' "hypersolid ${VERSION} - https://github.com/hypersolid-os/hypersolid"
+    _print_colorized '\x1B[91m\x1B[1m' "This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of"
+    _print_colorized '\x1B[91m\x1B[1m' "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details."
+    echo ""
+}
 
-# Check directory
-if [ ! -d "$DIST_DIR" ]; then
-  panic "dist directory [$DIST_DIR] does not exists!"
-fi
+# check directory structure
+# ---------------------------------------
+function hypersolid_precheck(){
+    # Check directory
+    if [ ! -d "$TARGET_DIR" ]; then
+    panic "target [$TARGET_NAME] does not exists!"
+    fi
 
-# Check config file
-if [ ! -f "$TARGET_DIR/config" ]; then
-  panic "target config [$TARGET_DIR=] does not exists!"
-fi
+    # Check directory
+    if [ ! -d "$DIST_BASEDIR" ]; then
+    panic "dist base directory [$DIST_BASEDIR] does not exists!"
+    fi
+}
 
-# read config
-source $TARGET_DIR/config
 
-# temp dir
-TMP_DIR=$(mktemp -d)
-log_info "Temp Dir: $TMP_DIR"
+# Trigger build
+# ---------------------------------------
+function hypersolid_build(){
 
-# temp dir structure
-mkdir -p $TMP_DIR/{bootfs,rootfs,buildfs}
+    log_info "building $TARGET_NAME"
 
-# copy multistrap config
-# -------------------------------------------------
-log_info "adding multistrap configuration"
-mkdir -p $TMP_DIR/buildfs/etc/multistrap
-cp -R $BASEDIR/multistrap/. $TMP_DIR/buildfs/etc/multistrap
-cp $TARGET_DIR/multistrap.ini $TMP_DIR/buildfs/etc/multistrap
+    # Check directory
+    if [ -d "$DIST_DIR" ]; then
+        log_info "dist directory [$DIST_DIR] does exists..cleanup"
+        rm -rf $DIST_DIR/*
+    else
+        log_info "dist directory [$DIST_DIR] does not exists..creating"
+        mkdir $DIST_DIR
+    fi
 
-# copy initramfs config
-# -------------------------------------------------
-log_info "adding initramfs configuration"
-mkdir -p $TMP_DIR/rootfs/etc/initramfs-tools
-cp -R $BASEDIR/initramfs/. $TMP_DIR/rootfs/etc/initramfs-tools
+    # Check config file
+    if [ ! -f "$TARGET_DIR/config" ]; then
+        panic "target config [$TARGET_DIR=] does not exists!"
+    fi
 
-# copy setup script
-# -------------------------------------------------
-log_info "adding setup scripts"
-mkdir -p $TMP_DIR/rootfs/.build
-cp -R $BASEDIR/setup/. $TMP_DIR/rootfs/.build
+    # read config
+    source $TARGET_DIR/config
 
-# copy generic rootfs files
-# -------------------------------------------------
-log_info "adding generic root file system"
-cp -R $BASEDIR/rootfs/. $TMP_DIR/rootfs/
+    # temp dir
+    TMP_DIR=$(mktemp -d)
+    log_info "Temp Dir: $TMP_DIR"
 
-# copy target files
-# -------------------------------------------------
-log_info "adding target specific files"
-cp -R $TARGET_DIR/rootfs $TMP_DIR
-cp -R $TARGET_DIR/bootfs $TMP_DIR
-cp -R $TARGET_DIR/scripts $TMP_DIR/rootfs/.build/scripts
-cp -R $TARGET_DIR/config $TMP_DIR/rootfs/.build/config
+    # temp dir structure
+    mkdir -p $TMP_DIR/{bootfs,rootfs,buildfs}
 
-# custom module file available ?
-if [ -f $TARGET_DIR/modules ]; then
-    log_info "adding initramfs module config"
-    cp $TARGET_DIR/modules $TMP_DIR/rootfs/etc/initramfs-tools/modules
-fi
+    # copy multistrap config
+    # -------------------------------------------------
+    log_info "adding multistrap configuration"
+    mkdir -p $TMP_DIR/buildfs/etc/multistrap
+    cp -R $BASEDIR/multistrap/. $TMP_DIR/buildfs/etc/multistrap
+    cp $TARGET_DIR/multistrap.ini $TMP_DIR/buildfs/etc/multistrap
 
-# custom initramfs config available ?
-if [ -d $TARGET_DIR/initramfs ]; then
-    log_info "adding custom initramfs config"
-    cp -R $TARGET_DIR/initramfs/. $TMP_DIR/rootfs/etc/initramfs-tools
-fi
+    # copy initramfs config
+    # -------------------------------------------------
+    log_info "adding initramfs configuration"
+    mkdir -p $TMP_DIR/rootfs/etc/initramfs-tools
+    cp -R $BASEDIR/initramfs/. $TMP_DIR/rootfs/etc/initramfs-tools
 
-# build image
-# -------------------------------------------------
-log_info "building build-system"
-docker build $DOCKER_BUILD_OPTS \
-    -t hypersolid-build \
-    -f $BASEDIR/Dockerfile \
-    $TMP_DIR || {
-        panic "docker build failed"
+    # copy setup script
+    # -------------------------------------------------
+    log_info "adding setup scripts"
+    mkdir -p $TMP_DIR/rootfs/.build
+    cp -R $BASEDIR/setup/. $TMP_DIR/rootfs/.build
+
+    # copy generic rootfs files
+    # -------------------------------------------------
+    log_info "adding generic root file system"
+    cp -R $BASEDIR/rootfs/. $TMP_DIR/rootfs/
+
+    # copy target files
+    # -------------------------------------------------
+    log_info "adding target specific files"
+    cp -R $TARGET_DIR/rootfs $TMP_DIR
+    cp -R $TARGET_DIR/bootfs $TMP_DIR
+    cp -R $TARGET_DIR/scripts $TMP_DIR/rootfs/.build/scripts
+    cp -R $TARGET_DIR/config $TMP_DIR/rootfs/.build/config
+
+    # custom module file available ?
+    if [ -f $TARGET_DIR/modules ]; then
+        log_info "adding initramfs module config"
+        cp $TARGET_DIR/modules $TMP_DIR/rootfs/etc/initramfs-tools/modules
+    fi
+
+    # custom initramfs config available ?
+    if [ -d $TARGET_DIR/initramfs ]; then
+        log_info "adding custom initramfs config"
+        cp -R $TARGET_DIR/initramfs/. $TMP_DIR/rootfs/etc/initramfs-tools
+    fi
+
+    # build image
+    # -------------------------------------------------
+    log_info "building build-system"
+    docker build $DOCKER_BUILD_OPTS \
+        -t hypersolid-build \
+        -f $BASEDIR/Dockerfile \
+        $TMP_DIR || {
+            panic "docker build failed"
+        }
+
+    # cleanup
+    log_info "cleaning up temporary directory"
+    [ -d $TMP_DIR ] && rm -rf $TMP_DIR
+
+    # remove old container
+    if docker container ls -all | grep -q hypersolid-env; then
+        docker container rm hypersolid-env
+    fi
+
+    # run build
+    log_info "executing build scripts"
+    docker run \
+        --privileged \
+        --tty \
+        --interactive \
+        --name hypersolid-env \
+        hypersolid-build || {
+            panic "hypersolid build failed"
+        }
+
+    # copy files
+    docker cp hypersolid-env:/opt/bootfs/ $DIST_DIR/
+
+    print_heading "BUILD READY"
+}
+
+# Run deploy script
+# ---------------------------------------
+function hypersolid_deploy(){
+    # deploy script exists ?
+    if [ ! -f $WORKINGDIR/deploy ]; then
+        panic "deploy script [$WORKINGDIR/deploy] not exists"
+    fi
+
+    # executable ?
+    if [ ! -x $WORKINGDIR/deploy ]; then
+        panic "deploy script [$WORKINGDIR/deploy] is not executable"
+    fi
+
+    # execute script
+    log_info "deploying $TARGET_NAME"
+
+    $WORKINGDIR/deploy "$TARGET_NAME" "$DIST_DIR" && {
+        log_success "deploying succeed"
+    } || {
+        panic "deploy action failed"
     }
+}
 
-# cleanup
-log_info "cleaning up temporary directory"
-[ -d $TMP_DIR ] && rm -rf $TMP_DIR
+# Command Dispatching
+# ---------------------------------------
+hypersolid_disclaimer
+case "$1" in
+    build)
+        hypersolid_intro
+        hypersolid_precheck
+        hypersolid_build
+        exit 0
+    ;;
 
-# remove old container
-if docker container ls -all | grep -q hypersolid-env; then
-    docker container rm hypersolid-env
-fi
+    deploy)
+        hypersolid_intro
+        hypersolid_precheck
+        hypersolid_deploy
+        exit 0
+    ;;
 
-# run build
-log_info "executing build scripts"
-docker run \
-    --privileged \
-    --tty \
-    --interactive \
-    --name hypersolid-env \
-    hypersolid-build || {
-        panic "hypersolid build failed"
-    }
-
-# copy files
-docker cp hypersolid-env:/opt/bootfs/ $DIST_DIR/
-
-print_heading "BUILD READY"
-
-# success
-exit 0
+    *)
+        show_usage
+        exit 1
+    ;;
+esac

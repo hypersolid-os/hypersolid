@@ -32,9 +32,7 @@ print_heading(){
 
     # print heading
     _print_colorized "$STYLE" \
-        "_______________________________________________________________\n\n" \
-        "${TITLE}\n\n" \
-        "_______________________________________________________________\n"
+        "${TITLE}\n\n"
 }
 
 log_error(){
@@ -43,7 +41,7 @@ log_error(){
 }
 
 log_success(){
-    # greeb
+    # green
    _print_colorized '\x1B[92m' " >> $@"
 }
 
