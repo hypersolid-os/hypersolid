@@ -49,8 +49,8 @@ DOCKER_BUILD_OPTS=""
 BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 WORKINGDIR="$(pwd)"
 
-# extract target name
-TARGET_NAME="$2"
+# extract target name; remove trailing slash
+TARGET_NAME="${2%/}"
 
 # assign target dir
 TARGET_DIR=$WORKINGDIR/$TARGET_NAME
@@ -65,15 +65,17 @@ source $BASEDIR/setup/functions
 # intro
 # ---------------------------------------
 function hypersolid_intro(){
+    _print_colorized '\x1B[1m' "_________________________________________________________________\n"
     print_heading " >> hypersolid" '\x1B[1m'
+    _print_colorized '\x1B[1m' "_________________________________________________________________\n"
 }
 
 function hypersolid_disclaimer(){
-    echo ""
-    _print_colorized '' "hypersolid ${VERSION} - https://github.com/hypersolid-os/hypersolid"
-    _print_colorized '\x1B[91m\x1B[1m' "This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of"
-    _print_colorized '\x1B[91m\x1B[1m' "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details."
-    echo ""
+    _print_colorized '\x1B[91m\x1B[1m' "_________________________________________________________________\n"
+    _print_colorized '\x1B[91m\x1B[1m' "This program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of"
+    _print_colorized '\x1B[91m\x1B[1m' "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\nSee the GNU General Public License v2 for more details."
+    _print_colorized '\x1B[91m\x1B[1m' "_________________________________________________________________\n"
+    _print_colorized '\x1B[1m' "hypersolid ${VERSION} - github.com/hypersolid-os/hypersolid"
 }
 
 # check directory structure
@@ -198,7 +200,7 @@ function hypersolid_build(){
     # copy files
     docker cp hypersolid-env:/opt/bootfs/ $DIST_DIR/
 
-    print_heading "BUILD READY"
+    print_heading "BUILD READY" '\x1B[92m\x1B[1m'
 }
 
 # Run deploy script
@@ -212,6 +214,11 @@ function hypersolid_deploy(){
     # executable ?
     if [ ! -x $WORKINGDIR/deploy ]; then
         panic "deploy script [$WORKINGDIR/deploy] is not executable"
+    fi
+
+    # Check config file
+    if [ ! -f "$TARGET_DIR/config" ]; then
+        panic "target [$TARGET_DIR] does not exists!"
     fi
 
     # execute script

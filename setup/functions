@@ -51,7 +51,7 @@ log_info(){
 }
 
 panic(){
-    log_error "$@"
     print_heading " > build failed" '\x1B[91m\x1B[1m'
+    log_error "$@"
     exit 1
 }

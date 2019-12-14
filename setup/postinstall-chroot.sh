@@ -45,7 +45,7 @@ echo "kernel version: $(cat /etc/kernel_version)"
 mkinitramfs -o /boot/initramfs.img -v "$(cat /etc/kernel_version)"
 
 # remove temporary packages
-apt-get -y --allow-remove-essential purge busybox-static initramfs-tools debian-archive-keyring
+dpkg -r --force-depends apt busybox-static initramfs-tools debian-archive-keyring
 
 # set root password
 echo "root:root" | chpasswd
