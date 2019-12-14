@@ -19,6 +19,7 @@ Usage: hypersolid <command> [args...]
   Commands:
     build <target-directory>       Build to target within the directory
     deploy <target-directory>      Deploy a already build target using custom deploy script within working dir
+    attach                         Attach the console to the currently active build environment
     --help                         Displays this help
     --version                      Displays version
 EOF
@@ -231,6 +232,14 @@ function hypersolid_deploy(){
     }
 }
 
+# attach to current active build system
+# ---------------------------------------
+function hypersolid_attach(){
+    log_info "attaching to build environment. press ctrl+d to quit."
+    echo ""
+    docker start -i hypersolid-env
+}
+
 # Command Dispatching
 # ---------------------------------------
 hypersolid_disclaimer
@@ -246,6 +255,11 @@ case "$1" in
         hypersolid_intro
         hypersolid_precheck
         hypersolid_deploy
+        exit 0
+    ;;
+
+    attach)
+        hypersolid_attach
         exit 0
     ;;
 
