@@ -183,9 +183,7 @@ function hypersolid_build(){
     [ -d $TMP_DIR ] && rm -rf $TMP_DIR
 
     # remove old container
-    if docker container ls -all | grep -q hypersolid-env; then
-        docker container rm hypersolid-env
-    fi
+    docker container rm hypersolid-env && log_info "removed existing build environment" || true
 
     # run build
     log_info "executing build scripts"
