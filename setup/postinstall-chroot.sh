@@ -48,7 +48,26 @@ mkinitramfs -o /boot/initramfs.img -v "$(cat /etc/kernel_version)"
 dpkg -r --force-depends apt busybox-static initramfs-tools debian-archive-keyring
 
 # set root password
-echo "root:root" | chpasswd
+# password hash provided via ENV ?
+if [ ! -z "$HYPERSOLID_ROOTPW" ]; then
+    echo $HYPERSOLID_ROOTPW
+    echo "root:$HYPERSOLID_ROOTPW" | chpasswd -e
+else
+    echo "root:root" | chpasswd
+fi
+
+# external uuid set ?
+if [ ! -z "$HYPERSOLID_UUID" ]; then
+    echo "$HYPERSOLID_UUID" > /etc/hypersolid_uuid
+fi
+
+# set hypersolid build info
+cat > "/etc/hypersolid_build" <<- EOF
+$HYPERSOLID_NAME
+$(date)
+EOF
+
+cat /etc/hypersolid_build
 
 # run post configure script hook ?
 if [ -x "/.build/scripts/post-chroot.sh" ]; then

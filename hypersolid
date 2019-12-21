@@ -192,6 +192,9 @@ function hypersolid_build(){
         --tty \
         --interactive \
         --name hypersolid-env \
+        --env HYPERSOLID_UUID=$HYPERSOLID_UUID \
+        --env HYPERSOLID_NAME=$TARGET_NAME \
+        --env HYPERSOLID_ROOTPW=$HYPERSOLID_ROOTPW \
         hypersolid-build || {
             panic "hypersolid build failed"
         }
