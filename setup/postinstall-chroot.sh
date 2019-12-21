@@ -9,8 +9,9 @@ if [ -x "/.build/scripts/pre-chroot.sh" ]; then
     /.build/scripts/pre-chroot.sh
 fi
 
-# run dash hook
-/var/lib/dpkg/info/dash.preinst install
+# hotfix - base-passwd not available before base-files
+cp /usr/share/base-passwd/passwd.master /etc/passwd
+cp /usr/share/base-passwd/group.master /etc/group
 
 # configure packages
 dpkg --configure -a
