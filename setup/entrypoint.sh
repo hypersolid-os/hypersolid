@@ -30,7 +30,7 @@ mkdir -p $BUILDFS/etc/apt/trusted.gpg.d $BUILDFS/etc/apt/apt.conf.d
 cp $ROOTFS/etc/apt/trusted.gpg.d/* $BUILDFS/etc/apt/trusted.gpg.d
 
 # copy apt config
-cp $ROOTFS/etc/apt/apt.conf.d/* $BUILDFS/etc/apt/apt.conf.d
+cp -R $ROOTFS/etc/apt/apt.conf.d/. $BUILDFS/etc/apt/apt.conf.d
 
 # run multistrap - $ROOTFS will be overwritten!
 multistrap \
