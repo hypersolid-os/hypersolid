@@ -26,8 +26,11 @@ log_info "initial container startup - running build"
 touch /.buildready
 
 # copy static gpg keys
-mkdir -p $BUILDFS/etc/apt/trusted.gpg.d
+mkdir -p $BUILDFS/etc/apt/trusted.gpg.d $BUILDFS/etc/apt/apt.conf.d
 cp $ROOTFS/etc/apt/trusted.gpg.d/* $BUILDFS/etc/apt/trusted.gpg.d
+
+# copy apt config
+cp $ROOTFS/etc/apt/apt.conf.d/* $BUILDFS/etc/apt/apt.conf.d
 
 # run multistrap - $ROOTFS will be overwritten!
 multistrap \
@@ -37,8 +40,11 @@ multistrap \
         panic "multistrap failed"
     }
 
-# copy additional files
+# copy additional files AFTER multistrap operation (content will be overwritten)
 cp -R $ROOTFS/. $BUILDFS
+
+# cleanup apt config
+rm -rf $BUILDFS/etc/apt
 
 # busybox libmusl - just override binary
 # required to enabled full busybox support within initramfs (e.g. DNS)

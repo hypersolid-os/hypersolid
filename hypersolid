@@ -168,6 +168,12 @@ function hypersolid_build(){
         cp -R $TARGET_DIR/initramfs/. $TMP_DIR/rootfs/etc/initramfs-tools
     fi
 
+    # apt proxy conf exists ?
+    if [ -f $WORKINGDIR/apt-proxy.conf ]; then
+        log_info "using apt-proxy config"
+        cp $WORKINGDIR/apt-proxy.conf $TMP_DIR/rootfs/etc/apt/apt.conf.d/01-proxy.conf
+    fi
+
     # build image
     # -------------------------------------------------
     log_info "building build-system"
