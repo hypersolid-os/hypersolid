@@ -9,6 +9,9 @@ Usage: pstorage <command> [args...]
     view|ls|inspect             Show all files within the persistent storage mount
     rw                          Remount the persistent storage parition as writeable
     ro                          Remount the persistent storage parition as readonly
+    persist                     Make config set persistent
+        > services              Systemd config /etc/systemd/system/{*target.wants}
+        > users                 users/groups
     --help                      Displays this help
     --version                   Displays version
 EOF
@@ -36,6 +39,8 @@ BASEDIR="$( cd "$( dirname "$(realpath $BASH_SOURCE[0])" )" && pwd )"
 
 # locations
 PSTORAGE_MOUNT=/mnt/storage
+MNT_TMPFS=/mnt/tmpfs
+OVERLAY_UPPER=$MNT_TMPFS/.upper
 
 # command provided ?
 if [ -z "$1" ]; then
@@ -92,19 +97,79 @@ function remountRO(){
     }
 }
 
+# persist systemd
+# ----------------------------------------------
+function persistSystemdConfig(){
+    # ensure storage is mounted
+    remountRW
+
+     # log
+    echo "copying systemd slices.."
+
+    # copy files
+    mkdir -p "${PSTORAGE_MOUNT}/etc/systemd/system"
+    cp -R $OVERLAY_UPPER/etc/systemd/system/{multi-user.target.wants,network-online.target.wants,timers.target.wants} "${PSTORAGE_MOUNT}/etc/systemd/system"
+
+    # readonly
+    remountRO
+}
+
+# persist users
+# ----------------------------------------------
+function persistUsers(){
+    # ensure storage is mounted
+    remountRW
+
+    # log
+    echo "copying user/group files.."
+
+    # copy files
+    mkdir -p "${PSTORAGE_MOUNT}/etc/ssh/authorized_keys"
+
+    # copy user/group definitions
+    cp /etc/{passwd,group,shadow,gshadow} "${PSTORAGE_MOUNT}/etc/"
+
+    # copy ssh keys
+    if [ -d "/etc/ssh/authorized_keys" ]; then
+        echo "copying user ssh keys.."
+        cp /etc/ssh/authorized_keys/* "${PSTORAGE_MOUNT}/etc/ssh/authorized_keys"
+
+        # drop root keys if set
+        if [ -f "${PSTORAGE_MOUNT}/etc/ssh/authorized_keys/root" ]; then
+            rm ${PSTORAGE_MOUNT}/etc/ssh/authorized_keys/root
+        fi
+    fi
+
+    # readonly
+    remountRO
+}
+
+
 # Command Dispatching
 # ---------------------------------------
-case "$1" in
-    view|ls|inspect)
+case "$1:$2" in
+    view:*|ls:*|inspect:*)
         viewFiles
         exit 0
     ;;
-    rw)
+    
+    rw:*)
         remountRW
         exit 0
     ;;
-    ro)
+    
+    ro:*)
         remountRO
+        exit 0
+    ;;
+
+    persist:services)
+        persistSystemdConfig
+        exit 0
+    ;;
+
+    persist:users)
+        persistUsers
         exit 0
     ;;
 

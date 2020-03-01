@@ -111,7 +111,7 @@ function hypersolid_build(){
 
     # Check config file
     if [ ! -f "$TARGET_DIR/config" ]; then
-        panic "target config [$TARGET_DIR=] does not exists!"
+        panic "target config [$TARGET_DIR] does not exists!"
     fi
 
     # read config
