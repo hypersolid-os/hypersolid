@@ -29,8 +29,10 @@ touch /.buildready
 mkdir -p $BUILDFS/etc/apt/trusted.gpg.d $BUILDFS/etc/apt/apt.conf.d
 cp $ROOTFS/etc/apt/trusted.gpg.d/* $BUILDFS/etc/apt/trusted.gpg.d
 
-# copy apt config
-cp -R $ROOTFS/etc/apt/apt.conf.d/. $BUILDFS/etc/apt/apt.conf.d
+# copy apt proxy config
+cp /etc/apt/apt.conf.d/01-proxy.conf $BUILDFS/etc/apt/apt.conf.d/01-proxy.conf
+
+log_info "starting multistrap"
 
 # run multistrap - $ROOTFS will be overwritten!
 multistrap \

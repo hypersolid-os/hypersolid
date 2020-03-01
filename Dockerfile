@@ -6,6 +6,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 # working dir
 WORKDIR /opt
 
+# proxy config
+COPY apt-proxy.conf /etc/apt/apt.conf.d/01-proxy.conf
+
 # build-system packages
 RUN set -xe \
     && echo "deb http://ftp2.de.debian.org/debian/ buster main contrib non-free" > /etc/apt/sources.list \
