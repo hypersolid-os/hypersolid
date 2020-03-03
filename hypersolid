@@ -47,7 +47,7 @@ set -e
 DOCKER_BUILD_OPTS=""
 
 # basedir
-BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+BASEDIR="$( cd "$( dirname "$(realpath $BASH_SOURCE[0])" )" && pwd )"
 WORKINGDIR="$(pwd)"
 
 # extract target name; remove trailing slash
@@ -151,10 +151,10 @@ function hypersolid_build(){
     # copy target files
     # -------------------------------------------------
     log_info "adding target specific files"
-    cp -R $TARGET_DIR/rootfs $TMP_DIR
-    cp -R $TARGET_DIR/bootfs $TMP_DIR
-    cp -R $TARGET_DIR/scripts $TMP_DIR/rootfs/.build/scripts
-    cp -R $TARGET_DIR/config $TMP_DIR/rootfs/.build/config
+    cp -R $TARGET_DIR/rootfs $TMP_DIR && log_info "generic rootfs copied"
+    cp -R $TARGET_DIR/bootfs $TMP_DIR || log_info "bootfs files not available..skipping"
+    cp -R $TARGET_DIR/scripts $TMP_DIR/rootfs/.build/scripts || log_info "script files not available..skipping"
+    cp -R $TARGET_DIR/config $TMP_DIR/rootfs/.build/config && log_info "generic rootfs copied"
 
     # custom module file available ?
     if [ -f $TARGET_DIR/modules ]; then
