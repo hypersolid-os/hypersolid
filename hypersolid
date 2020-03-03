@@ -19,6 +19,7 @@ Usage: hypersolid <command> [args...]
   Commands:
     build <target-directory>       Build to target within the directory
     deploy <target-directory>      Deploy a already build target using custom deploy script within working dir
+    build-deploy <dir>             Build+deploy target
     attach                         Attach the console to the currently active build environment
     --help                         Displays this help
     --version                      Displays version
@@ -262,6 +263,14 @@ case "$1" in
     deploy)
         hypersolid_intro
         hypersolid_precheck
+        hypersolid_deploy
+        exit 0
+    ;;
+
+    build-deploy)
+        hypersolid_intro
+        hypersolid_precheck
+        hypersolid_build
         hypersolid_deploy
         exit 0
     ;;
