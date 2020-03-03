@@ -198,8 +198,6 @@ function hypersolid_build(){
     log_info "executing build scripts"
     docker run \
         --privileged \
-        --tty \
-        --interactive \
         --name hypersolid-env \
         --env HYPERSOLID_UUID=$HYPERSOLID_UUID \
         --env HYPERSOLID_NAME=$TARGET_NAME \
