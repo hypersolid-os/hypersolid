@@ -47,7 +47,7 @@ set -e
 DOCKER_BUILD_OPTS=""
 
 # basedir
-BASEDIR="$( cd "$( dirname "$(realpath $BASH_SOURCE[0])" )" && pwd )"
+BASEDIR="$( cd "$( dirname "$(realpath ${BASH_SOURCE[0]})" )" && pwd )"
 WORKINGDIR="$(pwd)"
 
 # extract target name; remove trailing slash
