@@ -205,13 +205,9 @@ function hypersolid_dockerbuild(){
             panic "docker build failed"
         }
 
-    # remove old container
-    docker container rm hypersolid-env && log_info "removed existing build environment" || true
-
     # run build
     log_info "executing build scripts"
     docker run \
-        --name hypersolid-env \
         --env HYPERSOLID_UUID=$HYPERSOLID_UUID \
         --env HYPERSOLID_NAME=$TARGET_NAME \
         --env HYPERSOLID_ROOTPW=$HYPERSOLID_ROOTPW \

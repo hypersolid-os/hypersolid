@@ -40,7 +40,6 @@ log_info "starting multistrap"
         panic "multistrap failed"
     }
 
-
 # copy additional files AFTER multistrap operation (content will be overwritten)
 log_info "copying rootfs files.."
 cp -RT $ROOTFS $BUILDFS
@@ -117,7 +116,7 @@ fi
 # create squashfs
 log_info "creating squashfs system image (lzo compressed)"
 mksquashfs $BUILDFS $BOOTFS/system.img \
-    -comp lzo \
+    -comp lz4 -Xhc \
     -e \
         $BUILDFS/boot \
         $BUILDFS/.build \
