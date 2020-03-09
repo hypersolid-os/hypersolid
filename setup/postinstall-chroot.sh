@@ -3,9 +3,15 @@
 export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true
 export LC_ALL=C LANGUAGE=C LANG=C
 
+# Fail on Error !
+set -e
+
+# get function utilities
+source /.build/functions
+
 # run pre configure script hook ?
 if [ -x "/.build/scripts/pre-chroot.sh" ]; then
-    echo "hook [pre-chroot]"
+    log_info "hook [pre-chroot]"
     /.build/scripts/pre-chroot.sh
 fi
 
@@ -14,9 +20,11 @@ cp /usr/share/base-passwd/passwd.master /etc/passwd
 cp /usr/share/base-passwd/group.master /etc/group
 
 # configure packages
-dpkg --configure -a
+log_info "configuring packages.."
+dpkg --configure -a && log_success "packages configured"
 
 # generate locales
+log_info "generating locales.."
 locale-gen
 
 # set default target
@@ -40,24 +48,29 @@ setupcon --save-only
 ls -1 /lib/modules | sort -r | head -n1 > /etc/kernel_version
 
 # print info
-echo "kernel version: $(cat /etc/kernel_version)"
+log_success "kernel version: $(cat /etc/kernel_version)"
 
 # create initramfs
+log_info "creating initramfs.."
 mkinitramfs -o /boot/initramfs.img -v "$(cat /etc/kernel_version)"
 
 # remove temporary packages
+log_info "removing temporary packages.."
 dpkg -r --force-depends apt busybox-static initramfs-tools debian-archive-keyring
 
 # set root password
 # password hash provided via ENV ?
 if [ ! -z "$HYPERSOLID_ROOTPW" ]; then
+    log_success "using external root password"
     echo "root:$HYPERSOLID_ROOTPW" | chpasswd -e
 else
+    log_warning "using default root password"
     echo "root:root" | chpasswd
 fi
 
 # external uuid set ?
 if [ ! -z "$HYPERSOLID_UUID" ]; then
+    log_info "external UUID provided"
     echo "$HYPERSOLID_UUID" > /etc/hypersolid_uuid
 
     # add to prelogin issue message
@@ -72,6 +85,9 @@ EOF
 
 # run post configure script hook ?
 if [ -x "/.build/scripts/post-chroot.sh" ]; then
-    echo "hook [post-chroot]"
+    log_info "hook [post-chroot]"
     /.build/scripts/post-chroot.sh
 fi
+
+# success
+log_success "postinstall actions finished"

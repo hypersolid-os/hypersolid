@@ -3,16 +3,15 @@
 # Fail on Error !
 set -e
 
-export BUILDFS=/opt/build
-export ROOTFS=/opt/rootfs
-export BOOTFS=/opt/bootfs
-
 # container build ready - attach to interactive bash
-if [ -f "/.buildready" ]; then
-    # just start bash
-    /bin/bash
-    exit 0
-fi
+#if [ -f "$BASEFS/.buildready" ]; then
+#    # just start bash
+#    /bin/bash
+#    exit 0
+#else
+#    # create firstrun flag
+#    touch $BASEFS/.buildready
+#fi
 
 # get function utilities
 source $ROOTFS/.build/functions
@@ -22,30 +21,32 @@ source $ROOTFS/.build/config
 
 log_info "initial container startup - running build"
 
-# create firstrun flag
-touch /.buildready
-
 # copy static gpg keys
 mkdir -p $BUILDFS/etc/apt/trusted.gpg.d $BUILDFS/etc/apt/apt.conf.d
 cp $ROOTFS/etc/apt/trusted.gpg.d/* $BUILDFS/etc/apt/trusted.gpg.d
 
 # copy apt proxy config
-cp /etc/apt/apt.conf.d/01-proxy.conf $BUILDFS/etc/apt/apt.conf.d/01-proxy.conf
+cp $BASEFS/apt-proxy.conf $BUILDFS/etc/apt/apt.conf.d/01-proxy.conf
 
 log_info "starting multistrap"
 
 # run multistrap - $ROOTFS will be overwritten!
-multistrap \
+/usr/sbin/multistrap \
     --arch $CONF_ARCH \
     --dir $BUILDFS \
-    --file /etc/multistrap/multistrap.ini || {
+    --file $BASEFS/etc/multistrap/multistrap.ini && {
+        log_info "multistrap finished"
+    } || {
         panic "multistrap failed"
     }
 
+
 # copy additional files AFTER multistrap operation (content will be overwritten)
-cp -R $ROOTFS/. $BUILDFS
+log_info "copying rootfs files.."
+cp -RT $ROOTFS $BUILDFS
 
 # cleanup apt config
+log_info "removing target apt config"
 rm -rf $BUILDFS/etc/apt
 
 # busybox libmusl - just override binary
@@ -83,6 +84,8 @@ fi
 
 # arm ? use emulation
 if [[ "$CONF_ARCH" =~ ^(armel|armhf|arm64)$ ]]; then
+    log_info "emulating target arch $CONF_ARCH"
+
     # mount binfmt_misc
     mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
 
@@ -95,7 +98,7 @@ fi
 
 # chroot into fs (emulated mode)
 log_info "chroot into rootfs to execute postinstall actions"
-chroot $BUILDFS /bin/bash -c "/.build/postinstall-chroot.sh"
+/usr/sbin/chroot $BUILDFS /bin/bash -c "/.build/postinstall-chroot.sh"
 
 # run post configure script hook ?
 if [ -x "$BUILDFS/.build/scripts/post-configure.sh" ]; then
@@ -112,6 +115,7 @@ if [ -f $BUILDFS/vmlinuz ]; then
 fi
 
 # create squashfs
+log_info "creating squashfs system image (lzo compressed)"
 mksquashfs $BUILDFS $BOOTFS/system.img \
     -comp lzo \
     -e \
@@ -132,3 +136,7 @@ if [ -x "$BUILDFS/.build/scripts/post-build.sh" ]; then
     log_info "hook [post-build]"
     $BUILDFS/.build/scripts/post-build.sh
 fi
+
+# cleanup
+log_info "removing temporary buildfs"
+[ -d $BUILDFS ] && rm -rf $BUILDFS

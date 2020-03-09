@@ -37,17 +37,26 @@ print_heading(){
 
 log_error(){
     # red bold
-    _print_colorized '\x1B[91m\x1B[1m' " >> $@"
+    T=$(date +%T)
+    _print_colorized '\x1B[91m\x1B[1m' "[$T] >> $@"
 }
 
 log_success(){
     # green
-   _print_colorized '\x1B[92m' " >> $@"
+    T=$(date +%T)
+   _print_colorized '\x1B[92m' "[$T] >> $@"
 }
 
 log_info(){
+    # blue
+    T=$(date +%T)
+    _print_colorized '\x1B[34m' "[$T] >> $@"
+}
+
+log_warning(){
     # yellow
-    _print_colorized '\x1B[33m' " >> $@"
+    T=$(date +%T)
+    _print_colorized '\x1B[33m' "[$T] >> $@"
 }
 
 panic(){

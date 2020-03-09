@@ -16,22 +16,14 @@ RUN set -xe \
     && apt-get install -y --no-install-recommends \
         ca-certificates apt-transport-https \
         mount unzip wget util-linux nano multistrap binfmt-support qemu-user-static \
-        squashfs-tools gnupg gdisk \
-        debian-keyring debian-archive-keyring
-
-# structure
-RUN set -xe \
-    && mkdir -p /opt/bootfs \
-    && mkdir -p /opt/rootfs
+        squashfs-tools gnupg gdisk
 
 # copy build system files
-COPY buildfs/ /
+COPY / /
 
-# copy target system files
-COPY rootfs/ /opt/rootfs/
-COPY bootfs/ /opt/bootfs/
-COPY rootfs/.build/entrypoint.sh /entrypoint.sh
-
-# start bash
-ENTRYPOINT [ "/bin/bash" , "-c"]
-CMD [ "/entrypoint.sh" ]
+# build directories (mounted tmp dir!)
+ENV \
+    BASEFS="/" \
+    BUILDFS="/opt/build" \
+    ROOTFS="/opt/rootfs" \
+    BOOTFS="/opt/bootfs"

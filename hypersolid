@@ -95,9 +95,9 @@ function hypersolid_precheck(){
 }
 
 
-# Trigger build
+# prepare build
 # ---------------------------------------
-function hypersolid_build(){
+function hypersolid_prepare(){
 
     log_info "building $TARGET_NAME"
 
@@ -123,14 +123,14 @@ function hypersolid_build(){
     log_info "Temp Dir: $TMP_DIR"
 
     # temp dir structure
-    mkdir -p $TMP_DIR/{bootfs,rootfs,buildfs}
+    mkdir -p $TMP_DIR/{bootfs,rootfs,basefs,build}
 
     # copy multistrap config
     # -------------------------------------------------
     log_info "adding multistrap configuration"
-    mkdir -p $TMP_DIR/buildfs/etc/multistrap
-    cp -R $BASEDIR/multistrap/. $TMP_DIR/buildfs/etc/multistrap
-    cp $TARGET_DIR/multistrap.ini $TMP_DIR/buildfs/etc/multistrap
+    mkdir -p $TMP_DIR/basefs/etc/multistrap
+    cp -R $BASEDIR/multistrap/. $TMP_DIR/basefs/etc/multistrap
+    cp $TARGET_DIR/multistrap.ini $TMP_DIR/basefs/etc/multistrap
 
     # copy initramfs config
     # -------------------------------------------------
@@ -147,13 +147,13 @@ function hypersolid_build(){
     # copy generic rootfs files
     # -------------------------------------------------
     log_info "adding generic root file system"
-    cp -R $BASEDIR/rootfs/. $TMP_DIR/rootfs/
+    cp -RT $BASEDIR/rootfs $TMP_DIR/rootfs
 
     # copy target files
     # -------------------------------------------------
     log_info "adding target specific files"
-    cp -R $TARGET_DIR/rootfs $TMP_DIR && log_info "generic rootfs copied"
-    cp -R $TARGET_DIR/bootfs $TMP_DIR || log_info "bootfs files not available..skipping"
+    cp -TR $TARGET_DIR/rootfs $TMP_DIR/rootfs && log_info "generic rootfs copied"
+    cp -TR $TARGET_DIR/bootfs $TMP_DIR/bootfs || log_info "bootfs files not available..skipping"
     cp -R $TARGET_DIR/scripts $TMP_DIR/rootfs/.build/scripts || log_info "script files not available..skipping"
     cp -R $TARGET_DIR/config $TMP_DIR/rootfs/.build/config && log_info "generic rootfs copied"
 
@@ -173,24 +173,37 @@ function hypersolid_build(){
     if [ -f $WORKINGDIR/apt-proxy.conf ]; then
         log_info "using apt-proxy config"
         # copy into build context
-        cp $WORKINGDIR/apt-proxy.conf $TMP_DIR/apt-proxy.conf
+        cp $WORKINGDIR/apt-proxy.conf $TMP_DIR/basefs/apt-proxy.conf
     else
-        touch $TMP_DIR/apt-proxy.conf
+        touch $TMP_DIR/basefs/apt-proxy.conf
     fi
+}
 
-    # build image
-    # -------------------------------------------------
+# cleanup build
+# ---------------------------------------
+function hypersolid_cleanup(){
+    # cleanup
+    log_info "cleaning up temporary directory"
+    [ -d $TMP_DIR ] && rm -rf $TMP_DIR
+}
+
+# run dockerized build
+# ---------------------------------------
+function hypersolid_dockerbuild(){
+
+    # prepare env
+    hypersolid_prepare
+
+    log_info "running docker isolated build $TARGET_NAME"
+
+    # build buildsystem image
     log_info "building build-system"
     docker build $DOCKER_BUILD_OPTS \
         -t hypersolid-build \
         -f $BASEDIR/Dockerfile \
-        $TMP_DIR || {
+        $TMP_DIR/basefs || {
             panic "docker build failed"
         }
-
-    # cleanup
-    log_info "cleaning up temporary directory"
-    [ -d $TMP_DIR ] && rm -rf $TMP_DIR
 
     # remove old container
     docker container rm hypersolid-env && log_info "removed existing build environment" || true
@@ -198,19 +211,48 @@ function hypersolid_build(){
     # run build
     log_info "executing build scripts"
     docker run \
-        --privileged \
         --name hypersolid-env \
         --env HYPERSOLID_UUID=$HYPERSOLID_UUID \
         --env HYPERSOLID_NAME=$TARGET_NAME \
         --env HYPERSOLID_ROOTPW=$HYPERSOLID_ROOTPW \
-        hypersolid-build || {
+        --volume $TMP_DIR:/opt \
+        --rm \
+        hypersolid-build \
+        /opt/rootfs/.build/entrypoint.sh || {
             panic "hypersolid build failed"
         }
 
-    # copy files
-    docker cp hypersolid-env:/opt/bootfs/ $DIST_DIR/
+    # copy files to dist dir
+    cp -RT $TMP_DIR/bootfs $DIST_DIR && {
+        log_info "images copied to $DIST_DIR"
+    }
+
+    # remove temp dirs
+    hypersolid_cleanup
 
     print_heading "BUILD READY" '\x1B[92m\x1B[1m'
+}
+
+# run build on current hostsystem
+# ---------------------------------------
+function hypersolid_hostbuild(){
+    # prepare env
+    hypersolid_prepare
+
+    log_info "running hostsystem based build $TARGET_NAME"
+
+    # expose temporary paths
+    export BASEFS=$TMP_DIR/basefs
+    export BUILDFS=$TMP_DIR/build
+    export ROOTFS=$TMP_DIR/rootfs
+    export BOOTFS=$TMP_DIR/bootfs
+
+    # run entrypoint
+    cd $TMP_DIR
+    $TMP_DIR/rootfs/.build/entrypoint.sh
+
+    # remove temp dirs
+    hypersolid_cleanup
 }
 
 # Run deploy script
@@ -256,7 +298,14 @@ case "$1" in
     build)
         hypersolid_intro
         hypersolid_precheck
-        hypersolid_build
+        hypersolid_dockerbuild
+        exit 0
+    ;;
+
+    hostbuild)
+        hypersolid_intro
+        hypersolid_precheck
+        hypersolid_hostbuild
         exit 0
     ;;
 
@@ -270,7 +319,7 @@ case "$1" in
     build-deploy)
         hypersolid_intro
         hypersolid_precheck
-        hypersolid_build
+        hypersolid_dockerbuild
         hypersolid_deploy
         exit 0
     ;;
