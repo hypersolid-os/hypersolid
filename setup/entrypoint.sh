@@ -3,16 +3,6 @@
 # Fail on Error !
 set -e
 
-# container build ready - attach to interactive bash
-#if [ -f "$BASEFS/.buildready" ]; then
-#    # just start bash
-#    /bin/bash
-#    exit 0
-#else
-#    # create firstrun flag
-#    touch $BASEFS/.buildready
-#fi
-
 # get function utilities
 source $ROOTFS/.build/functions
 
@@ -48,8 +38,8 @@ cp -RT $ROOTFS $BUILDFS
 log_info "removing target apt config"
 rm -rf $BUILDFS/etc/apt
 
-# busybox libmusl - just override binary
-# required to enabled full busybox support within initramfs (e.g. DNS)
+# busybox libmusl
+# required to enabled full busybox support within initramfs (e.g. DNS,losetup)
 BUSYBOX_BIN=
 case "$CONF_ARCH" in
     armel)

@@ -231,7 +231,7 @@ function hypersolid_dockerbuild(){
 
 # run build on current hostsystem
 # ---------------------------------------
-function hypersolid_hostbuild(){
+function _hypersolid_hostbuild(){
     # prepare env
     hypersolid_prepare
 
@@ -245,7 +245,7 @@ function hypersolid_hostbuild(){
 
     # run entrypoint
     cd $TMP_DIR
-    $TMP_DIR/rootfs/.build/entrypoint.sh
+    fakeroot $TMP_DIR/rootfs/.build/entrypoint.sh
 
     # remove temp dirs
     hypersolid_cleanup
@@ -295,13 +295,6 @@ case "$1" in
         hypersolid_intro
         hypersolid_precheck
         hypersolid_dockerbuild
-        exit 0
-    ;;
-
-    hostbuild)
-        hypersolid_intro
-        hypersolid_precheck
-        hypersolid_hostbuild
         exit 0
     ;;
 
