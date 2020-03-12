@@ -11,7 +11,7 @@
 #
 #_______________________________________________________________
 
-VERSION="0.5.0"
+VERSION="0.6.0"
 
 show_usage(){
     cat << EOF
@@ -85,15 +85,14 @@ function hypersolid_disclaimer(){
 function hypersolid_precheck(){
     # Check directory
     if [ ! -d "$TARGET_DIR" ]; then
-    panic "target [$TARGET_NAME] does not exists!"
+        panic "target [$TARGET_NAME] does not exists!"
     fi
 
     # Check directory
     if [ ! -d "$DIST_BASEDIR" ]; then
-    panic "dist base directory [$DIST_BASEDIR] does not exists!"
+        panic "dist base directory [$DIST_BASEDIR] does not exists!"
     fi
 }
-
 
 # prepare build
 # ---------------------------------------
@@ -187,12 +186,43 @@ function hypersolid_cleanup(){
     [ -d $TMP_DIR ] && rm -rf $TMP_DIR
 }
 
+# run hook
+# ---------------------------------------
+function hypersolid_hook_exec(){
+    log_info "hook [$1] triggered"
+
+    # hook set ?
+    if [ -z "$1" ]; then
+        log_error "invalid hook call"
+        return
+    fi
+
+    # hook file exists ?
+    if [ ! -f $WORKINGDIR/.hooks/$1 ]; then
+        return
+    fi
+
+    # executable ?
+    if [ ! -x $WORKINGDIR/.hooks/$1 ]; then
+        panic "hook [$WORKINGDIR/.hooks/$1] is not executable"
+    fi
+
+    # run hook
+    log_info "running hook [$1].."
+    HOOK_FN="hook_$1"
+    source $WORKINGDIR/.hooks/$1
+    $HOOK_FN
+}
+
 # run dockerized build
 # ---------------------------------------
 function hypersolid_dockerbuild(){
 
     # prepare env
     hypersolid_prepare
+
+    # call hook
+    hypersolid_hook_exec "pre-build"
 
     log_info "running docker isolated build $TARGET_NAME"
 
@@ -226,6 +256,9 @@ function hypersolid_dockerbuild(){
     # remove temp dirs
     hypersolid_cleanup
 
+    # call hook
+    hypersolid_hook_exec "post-build"
+
     print_heading "BUILD READY" '\x1B[92m\x1B[1m'
 }
 
@@ -251,34 +284,6 @@ function _hypersolid_hostbuild(){
     hypersolid_cleanup
 }
 
-# Run deploy script
-# ---------------------------------------
-function hypersolid_deploy(){
-    # deploy script exists ?
-    if [ ! -f $WORKINGDIR/deploy ]; then
-        panic "deploy script [$WORKINGDIR/deploy] not exists"
-    fi
-
-    # executable ?
-    if [ ! -x $WORKINGDIR/deploy ]; then
-        panic "deploy script [$WORKINGDIR/deploy] is not executable"
-    fi
-
-    # Check config file
-    if [ ! -f "$TARGET_DIR/config" ]; then
-        panic "target [$TARGET_DIR] does not exists!"
-    fi
-
-    # execute script
-    log_info "deploying $TARGET_NAME"
-
-    $WORKINGDIR/deploy "$TARGET_NAME" "$DIST_DIR" && {
-        log_success "deploying succeed"
-    } || {
-        panic "deploy action failed"
-    }
-}
-
 # attach to current active build system
 # ---------------------------------------
 function hypersolid_attach(){
@@ -301,7 +306,7 @@ case "$1" in
     deploy)
         hypersolid_intro
         hypersolid_precheck
-        hypersolid_deploy
+        hypersolid_hook_exec "deploy"
         exit 0
     ;;
 
@@ -309,12 +314,12 @@ case "$1" in
         hypersolid_intro
         hypersolid_precheck
         hypersolid_dockerbuild
-        hypersolid_deploy
+        hypersolid_hook_exec "deploy"
         exit 0
     ;;
 
     attach)
-        hypersolid_attach
+        #hypersolid_attach
         exit 0
     ;;
 
