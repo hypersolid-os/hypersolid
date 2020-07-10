@@ -96,7 +96,7 @@ if [ -x "$BUILDFS/.build/scripts/post-configure.sh" ]; then
 fi
 
 # move initramfs
-mv $BUILDFS/boot/initramfs.img $BOOTFS/initramfs.img
+mv $BUILDFS/boot/initramfs.cpio $BOOTFS/initramfs.cpio
 
 # move kernel (if exists)
 if [ -f $BUILDFS/vmlinuz ]; then
@@ -118,6 +118,14 @@ mksquashfs $BUILDFS $BOOTFS/system.img \
     log_success "squashfs file created in $BUILDFS $BOOTFS/system.img"
 } || {
     panic "failed to create squashfs image"
+}
+
+# wrap system.img into CPIO
+log_info "creating cpio wrapped squashfs image"
+echo "system.img" | cpio --quiet -H newc -o --directory=$BOOTFS > $BOOTFS/system.cpio && {
+    log_success "cpio wrapped squashfs file created in $BUILDFS $BOOTFS/system.cpio"
+} || {
+    panic "failed to create cpio wrapped image"
 }
 
 # run post build script hook ?

@@ -16,7 +16,7 @@ RUN set -xe \
     && apt-get install -y --no-install-recommends \
         ca-certificates apt-transport-https \
         mount unzip wget util-linux nano multistrap binfmt-support qemu-user-static \
-        squashfs-tools gnupg gdisk
+        squashfs-tools gnupg gdisk cpio
 
 # copy build system files
 COPY / /
