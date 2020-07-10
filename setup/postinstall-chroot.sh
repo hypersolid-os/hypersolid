@@ -52,7 +52,7 @@ log_success "kernel version: $(cat /etc/kernel_version)"
 
 # create initramfs
 log_info "creating initramfs.."
-mkinitramfs -o /boot/initramfs.cpio -v "$(cat /etc/kernel_version)"
+mkinitramfs -o /boot/initramfs.img -v "$(cat /etc/kernel_version)"
 
 # remove temporary packages
 log_info "removing temporary packages.."

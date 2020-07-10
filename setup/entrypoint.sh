@@ -96,7 +96,7 @@ if [ -x "$BUILDFS/.build/scripts/post-configure.sh" ]; then
 fi
 
 # move initramfs
-mv $BUILDFS/boot/initramfs.cpio $BOOTFS/initramfs.cpio
+mv $BUILDFS/boot/initramfs.img $BOOTFS/initramfs.img
 
 # move kernel (if exists)
 if [ -f $BUILDFS/vmlinuz ]; then
