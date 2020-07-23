@@ -104,7 +104,7 @@ if [ -f $BUILDFS/vmlinuz ]; then
 fi
 
 # create squashfs
-log_info "creating squashfs system image (lzo compressed)"
+log_info "creating squashfs system image (lz4 compressed)"
 mksquashfs $BUILDFS $BOOTFS/system.img \
     -comp lz4 -Xhc \
     -e \

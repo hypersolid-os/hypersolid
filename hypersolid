@@ -17,12 +17,15 @@ show_usage(){
     cat << EOF
 Usage: hypersolid <command> [args...]
   Commands:
-    build <target-directory>       Build to target within the directory
-    deploy <target-directory>      Deploy a already build target using custom deploy script within working dir
-    build-deploy <dir>             Build+deploy target
-    attach                         Attach the console to the currently active build environment
-    --help                         Displays this help
-    --version                      Displays version
+    build <target-directory>          Build to target within the directory
+    deploy <target-directory>         Deploy a already build target using custom deploy script within working dir
+    sign <target-directory>           Run codesigning hook
+    build-deploy <target-directory>   Build+deploy target
+    update <target-directory>         Build+codesign+deploy target    
+    attach                            Attach the console to the currently active build environment
+    
+    --help                            Displays this help
+    --version                         Displays version
 EOF
     exit 0
 }
@@ -315,6 +318,22 @@ case "$1" in
         hypersolid_precheck
         hypersolid_dockerbuild
         hypersolid_hook_exec "deploy"
+        exit 0
+    ;;
+
+    update)
+        hypersolid_intro
+        hypersolid_precheck
+        hypersolid_dockerbuild
+        hypersolid_hook_exec "codesigning"
+        hypersolid_hook_exec "deploy"
+        exit 0
+    ;;
+
+    sign)
+        hypersolid_intro
+        hypersolid_precheck
+        hypersolid_hook_exec "codesigning"
         exit 0
     ;;
 
