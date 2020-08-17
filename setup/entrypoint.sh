@@ -85,6 +85,27 @@ if [[ "$CONF_ARCH" =~ ^(armel|armhf|arm64)$ ]]; then
     cp /usr/bin/qemu-arm-static $BUILDFS/usr/bin/
 fi
 
+# include microcode ?
+case "$CONF_MICROCODE" in
+    yes|intel-amd)
+        log_info "microcode: include intel+amd microcode"
+        echo "IUCODE_TOOL_INITRAMFS=early" >> $BUILDFS/etc/default/intel-microcode
+        echo "IUCODE_TOOL_EXTRA_OPTIONS=\"${CONF_MICROCODE_INTEL}\"" >> $BUILDFS/etc/default/intel-microcode
+        echo "AMD64UCODE_INITRAMFS=early" >> $BUILDFS/etc/default/amd64-microcode
+        ;;
+    intel)
+        log_info "microcode: include intel microcode"
+        echo "IUCODE_TOOL_INITRAMFS=early" >> $BUILDFS/etc/default/intel-microcode
+        echo "IUCODE_TOOL_EXTRA_OPTIONS=\"${CONF_MICROCODE_INTEL}\"" >> $BUILDFS/etc/default/intel-microcode
+        ;;
+    amd)
+        log_info "microcode: include amd microcode"
+        echo "AMD64UCODE_INITRAMFS=early" >> $BUILDFS/etc/default/amd64-microcode
+        ;;
+    *)
+        log_info "microcode: don't include"
+esac
+
 # chroot into fs (emulated mode)
 log_info "chroot into rootfs to execute postinstall actions"
 /usr/sbin/chroot $BUILDFS /bin/bash -c "/.build/postinstall-chroot.sh"

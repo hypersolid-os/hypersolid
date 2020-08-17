@@ -1,0 +1,12 @@
+# Configuration script for intel-microcode version 3
+
+# see /usr/share/initramfs-tools/hooks/intel_microcode
+
+# never install microcode updates to the early initramfs - use early to enforce
+IUCODE_TOOL_INITRAMFS=no
+
+# Don't scan system for cpus
+IUCODE_TOOL_SCANCPUS=no
+
+# Extra options; e.g. add specific cpu signatures
+IUCODE_TOOL_EXTRA_OPTIONS=""
