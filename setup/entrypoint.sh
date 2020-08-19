@@ -34,10 +34,6 @@ log_info "starting multistrap"
 log_info "copying rootfs files.."
 cp -RT $ROOTFS $BUILDFS
 
-# cleanup apt config
-log_info "removing target apt config"
-rm -rf $BUILDFS/etc/apt
-
 # busybox libmusl
 # required to enabled full busybox support within initramfs (e.g. DNS,losetup)
 BUSYBOX_BIN=

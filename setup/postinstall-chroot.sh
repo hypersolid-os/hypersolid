@@ -23,6 +23,10 @@ cp /usr/share/base-passwd/group.master /etc/group
 log_info "configuring packages.."
 dpkg --configure -a && log_success "packages configured"
 
+# cleanup apt config
+log_info "removing target apt config"
+rm -rf /etc/apt
+
 # generate locales
 log_info "generating locales.."
 locale-gen
