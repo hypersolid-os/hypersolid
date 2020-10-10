@@ -23,6 +23,7 @@ Usage: hypersolid <command> [args...]
     build-deploy <target-directory>   Build+deploy target
     update <target-directory>         Build+codesign+deploy target    
     attach                            Attach the console to the currently active build environment
+    clean <target>                    Cleanup dist/ directory.
     
     --help                            Displays this help
     --version                         Displays version
@@ -295,6 +296,21 @@ function hypersolid_attach(){
     docker start -i hypersolid-env
 }
 
+# remove files within dist directory of specific target
+# ---------------------------------------
+function hypersolid_clean_dist(){
+    log_info "removing artifacts of target $TARGET_NAME"
+
+    # dist directory exists ?
+    if [ -d "$DIST_DIR" ]; then
+        rm $DIST_DIR/* && {
+            log_success "ok"
+        }
+    else
+        log_warning "target doesn't exist"
+    fi
+}
+
 # Command Dispatching
 # ---------------------------------------
 hypersolid_disclaimer
@@ -334,6 +350,11 @@ case "$1" in
         hypersolid_intro
         hypersolid_precheck
         hypersolid_hook_exec "codesigning"
+        exit 0
+    ;;
+
+    clean)
+        hypersolid_clean_dist
         exit 0
     ;;
 
