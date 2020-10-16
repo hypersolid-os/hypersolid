@@ -126,7 +126,7 @@ if [ -z "$CONF_SQUASHFS_ARGS" ]; then
 fi
 
 # create squashfs
-log_info "creating squashfs system image with args [${CONF_SQUASHFS_ARGS}]"
+log_info "creating squashfs system image"
 mksquashfs $BUILDFS $BOOTFS/system.img "${CONF_SQUASHFS_ARGS[@]}" \
     -e \
         $BUILDFS/boot \
