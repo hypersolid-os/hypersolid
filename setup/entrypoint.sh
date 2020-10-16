@@ -120,10 +120,14 @@ if [ -f $BUILDFS/vmlinuz ]; then
     cp $BUILDFS/vmlinuz $BOOTFS/kernel.img
 fi
 
+# squasfs compression algo set ?
+if [ -z "$CONF_SQUASHFS_ARGS" ]; then
+    CONF_SQUASHFS_ARGS=(-comp lz4 -Xhc)
+fi
+
 # create squashfs
-log_info "creating squashfs system image (lz4 compressed)"
-mksquashfs $BUILDFS $BOOTFS/system.img \
-    -comp lz4 -Xhc \
+log_info "creating squashfs system image with args [${CONF_SQUASHFS_ARGS}]"
+mksquashfs $BUILDFS $BOOTFS/system.img "${CONF_SQUASHFS_ARGS[@]}" \
     -e \
         $BUILDFS/boot \
         $BUILDFS/.build \
@@ -138,12 +142,20 @@ mksquashfs $BUILDFS $BOOTFS/system.img \
 }
 
 # wrap system.img into CPIO
-log_info "creating cpio wrapped squashfs image"
-echo "system.img" | cpio --quiet -H newc -o --directory=$BOOTFS > $BOOTFS/system.cpio && {
-    log_success "cpio wrapped squashfs file created in $BUILDFS $BOOTFS/system.cpio"
-} || {
-    panic "failed to create cpio wrapped image"
-}
+if [ "$CONF_IMAGE_TYPE" != "img" ]; then
+    log_info "creating cpio wrapped squashfs image"
+    echo "system.img" | cpio --quiet -H newc -o --directory=$BOOTFS > $BOOTFS/system.cpio && {
+        log_success "cpio wrapped squashfs file created in $BUILDFS $BOOTFS/system.cpio"
+    } || {
+        panic "failed to create cpio wrapped image"
+    }
+fi
+
+# cpio image only ? remove .img
+if [ "$CONF_IMAGE_TYPE" = "cpio" ]; then
+    log_info "removing plain squashfs system.img file"
+    rm $BUILDFS $BOOTFS/system.img
+fi
 
 # run post build script hook ?
 if [ -x "$BUILDFS/.build/scripts/post-build.sh" ]; then
