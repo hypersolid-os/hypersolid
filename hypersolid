@@ -247,6 +247,7 @@ function hypersolid_dockerbuild(){
         --env HYPERSOLID_ROOTPW=$HYPERSOLID_ROOTPW \
         --volume $TMP_DIR:/opt \
         --rm \
+        --privileged \
         hypersolid-build \
         /opt/rootfs/.build/entrypoint.sh || {
             panic "hypersolid build failed"
