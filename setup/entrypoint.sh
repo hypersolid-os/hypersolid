@@ -104,7 +104,8 @@ esac
 
 # chroot into fs (emulated mode)
 log_info "chroot into rootfs to execute postinstall actions"
-/usr/sbin/chroot $BUILDFS /bin/bash -c "/.build/postinstall-chroot.sh"
+#/usr/sbin/chroot $BUILDFS /bin/bash -c "/.build/postinstall-chroot.sh"
+systemd-nspawn --register=false --directory $BUILDFS /bin/bash -c "/.build/postinstall-chroot.sh"
 
 # run post configure script hook ?
 if [ -x "$BUILDFS/.build/scripts/post-configure.sh" ]; then

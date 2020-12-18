@@ -267,11 +267,14 @@ function hypersolid_dockerbuild(){
     print_heading "BUILD READY" '\x1B[92m\x1B[1m'
 }
 
-# run build on current hostsystem
+# run build on current hostsystem with systemd-nspawn
 # ---------------------------------------
-function _hypersolid_hostbuild(){
+function hypersolid_nspawnbuild(){
     # prepare env
     hypersolid_prepare
+
+    # call hook
+    hypersolid_hook_exec "pre-build"
 
     log_info "running hostsystem based build $TARGET_NAME"
 
@@ -283,10 +286,20 @@ function _hypersolid_hostbuild(){
 
     # run entrypoint
     cd $TMP_DIR
-    fakeroot $TMP_DIR/rootfs/.build/entrypoint.sh
+    $TMP_DIR/rootfs/.build/entrypoint.sh
+
+    # copy files to dist dir
+    cp -RT $TMP_DIR/bootfs $DIST_DIR && {
+        log_info "images copied to $DIST_DIR"
+    }
 
     # remove temp dirs
     hypersolid_cleanup
+
+    # call hook
+    hypersolid_hook_exec "post-build"
+
+    print_heading "BUILD READY" '\x1B[92m\x1B[1m'
 }
 
 # attach to current active build system
@@ -319,7 +332,8 @@ case "$1" in
     build)
         hypersolid_intro
         hypersolid_precheck
-        hypersolid_dockerbuild
+        #hypersolid_dockerbuild
+        hypersolid_nspawnbuild
         exit 0
     ;;
 
@@ -333,7 +347,7 @@ case "$1" in
     build-deploy)
         hypersolid_intro
         hypersolid_precheck
-        hypersolid_dockerbuild
+        hypersolid_nspawnbuild
         hypersolid_hook_exec "deploy"
         exit 0
     ;;
@@ -341,7 +355,7 @@ case "$1" in
     update)
         hypersolid_intro
         hypersolid_precheck
-        hypersolid_dockerbuild
+        hypersolid_nspawnbuild
         hypersolid_hook_exec "codesigning"
         hypersolid_hook_exec "deploy"
         exit 0
