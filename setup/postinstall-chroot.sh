@@ -7,7 +7,10 @@ export LC_ALL=C LANGUAGE=C LANG=C
 set -e
 
 # get function utilities
-source /.build/functions
+source $ROOTFS/.build/functions
+
+# load config
+source $ROOTFS/.build/config
 
 # run pre configure script hook ?
 if [ -x "/.build/scripts/pre-chroot.sh" ]; then
@@ -20,8 +23,10 @@ log_info "configuring packages.."
 dpkg --configure -a && log_success "packages configured"
 
 # cleanup apt config
-log_info "removing target apt config"
-rm -rf /etc/apt
+if [ ! "$CONF_APT" == "keep" ]; then
+    log_info "removing target apt config"
+    rm -rf /etc/apt
+fi
 
 # generate locales
 log_info "generating locales.."
@@ -54,9 +59,13 @@ log_success "kernel version: $(cat /etc/kernel_version)"
 log_info "creating initramfs.."
 mkinitramfs -o /boot/initramfs.img -v "$(cat /etc/kernel_version)"
 
-# remove temporary packages
+# remove "temporary" packages
 log_info "removing temporary packages.."
-dpkg -r --force-depends apt busybox-static initramfs-tools debian-archive-keyring
+if [ "$CONF_APT" == "keep" ]; then
+    dpkg -r --force-depends busybox-static initramfs-tools
+else
+    dpkg -r --force-depends busybox-static initramfs-tools apt debian-archive-keyring
+fi
 
 # set root password
 # password hash provided via ENV ?
