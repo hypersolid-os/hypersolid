@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+set -e
+
+# basedir
+BASEDIR="$( cd "$( dirname "$(realpath ${BASH_SOURCE[0]})" )" && pwd )"
+WORKINGDIR="$(pwd)"
+
+CACHE_DIR=/tmp/hypersolid-env
+
+# directory alreay exists ?
+[ ! -d "$CACHE_DIR" ] && {
+    # create cache dir
+    mkdir $CACHE_DIR
+} || {
+    echo "build env already exist..skipping"
+    exit 0
+}
+
+# create apt config dirs
+mkdir -p $CACHE_DIR/etc/apt/trusted.gpg.d $CACHE_DIR/etc/apt/apt.conf.d
+
+# copy keyrings
+cp -RT $BASEDIR/../rootfs/etc/apt/trusted.gpg.d $CACHE_DIR/etc/apt/trusted.gpg.d
+
+# copy apt proxy config if exist
+[ -f "$WORKINGDIR/../apt-proxy.conf" ] && {
+    cp $WORKINGDIR/../apt-proxy.conf $CACHE_DIR/etc/apt/apt.conf.d/01-proxy.conf
+}
+
+echo "starting multistrap"
+
+# run multistrap as current user (uid/gid not set properly but not required)
+/usr/sbin/multistrap \
+    --arch "amd64" \
+    --dir $CACHE_DIR \
+    --file $BASEDIR/multistrap.ini && {
+        echo "multistrap finished"
+    } || {
+        echo "multistrap failed"
+        exit 1
+    }
+
+# copy configure script
+cp $BASEDIR/dpkg-configure $CACHE_DIR/dpkg-configure
+
+# create config path for multistrap operation
+mkdir -p $BASEDIR/etc/hypersolid
+
+# configure build environment system
+sudo systemd-nspawn \
+    --register=false \
+    --private-users \
+    --directory /tmp/hypersolid-env \
+    ./dpkg-configure
+
