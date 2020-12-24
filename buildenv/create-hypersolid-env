@@ -45,12 +45,12 @@ echo "starting multistrap"
 cp $BASEDIR/dpkg-configure $CACHE_DIR/dpkg-configure
 
 # create config path for multistrap operation
-mkdir -p $BASEDIR/etc/hypersolid
+mkdir -p $CACHE_DIR/etc/hypersolid
 
 # configure build environment system
 sudo systemd-nspawn \
     --register=false \
     --private-users \
-    --directory /tmp/hypersolid-env \
+    --directory $CACHE_DIR \
     ./dpkg-configure
 
