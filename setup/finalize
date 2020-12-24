@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+# Fail on Error !
+set -e
+
+# expose temporary paths
+export TARGET_FS=/build/target
+export ROOT_FS=/build/rootfs
+export OUTPUT_DIR=/build/dist
+
+# get function utilities
+source $ROOT_FS/.build/functions
+
+# load config
+source $ROOT_FS/.build/config
+
+# run post configure script hook ?
+if [ -x "$TARGET_FS/.build/scripts/post-configure.sh" ]; then
+    log_info "hook [post-configure]"
+    $TARGET_FS/.build/scripts/post-configure.sh
+fi
+
+# move initramfs
+mv $TARGET_FS/boot/initramfs.img $OUTPUT_DIR/initramfs.img
+
+# move kernel (if exists)
+if [ -f $TARGET_FS/vmlinuz ]; then
+    cp $TARGET_FS/vmlinuz $OUTPUT_DIR/kernel.img
+fi
+
+# squasfs compression algo set ?
+if [ -z "$CONF_SQUASHFS_ARGS" ]; then
+    CONF_SQUASHFS_ARGS=(-comp lz4 -Xhc)
+fi
+
+# create squashfs
+log_info "creating squashfs system image"
+mksquashfs $TARGET_FS $OUTPUT_DIR/system.img "${CONF_SQUASHFS_ARGS[@]}" \
+    -e \
+        $TARGET_FS/boot \
+        $TARGET_FS/.build \
+        $TARGET_FS/etc/initramfs-tools \
+        $TARGET_FS/usr/bin/qemu-* \
+        $TARGET_FS/vmlinuz* \
+        $TARGET_FS/initrd* \
+&& {
+    log_success "squashfs file created in $TARGET_FS $OUTPUT_DIR/system.img"
+} || {
+    panic "failed to create squashfs image"
+}
+
+# wrap system.img into CPIO
+if [ "$CONF_IMAGE_TYPE" != "img" ]; then
+    log_info "creating cpio wrapped squashfs image"
+    echo "system.img" | cpio --quiet -H newc -o --directory=$OUTPUT_DIR > $OUTPUT_DIR/system.cpio && {
+        log_success "cpio wrapped squashfs file created in $TARGET_FS $OUTPUT_DIR/system.cpio"
+    } || {
+        panic "failed to create cpio wrapped image"
+    }
+fi
+
+# cpio image only ? remove .img
+if [ "$CONF_IMAGE_TYPE" = "cpio" ]; then
+    log_info "removing plain squashfs system.img file"
+    rm $TARGET_FS $OUTPUT_DIR/system.img
+fi
+
+# run post build script hook ?
+if [ -x "$TARGET_FS/.build/scripts/post-build.sh" ]; then
+    log_info "hook [post-build]"
+    $TARGET_FS/.build/scripts/post-build.sh
+fi

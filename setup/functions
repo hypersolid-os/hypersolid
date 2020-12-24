@@ -14,7 +14,7 @@ print_heading(){
     # title set ?
     [ -z "$1" ] && return
 
-    # default style: bold blue
+    # default style: bold bright blue
     STYLE='\x1B[34m\x1B[1m'
 
     # style set ?
@@ -35,28 +35,49 @@ print_heading(){
         "${TITLE}\n\n"
 }
 
-log_error(){
-    # red bold
+print_subheading(){
+    # title set ?
+    [ -z "$1" ] && return
+
+    # default style: bold blue
+    STYLE='\x1B[7m\x1B[34m\x1B[1m'
+
+    # style set ?
+    [ ! -z "$2" ] && {
+        STYLE="$2"
+    }
+
+    # default title, text only
+    TITLE="$1"
     T=$(date +%T)
-    _print_colorized '\x1B[91m\x1B[1m' "[$T] >> $@"
+
+    # print heading
+    _print_colorized "$STYLE" \
+        "[$T] >> ${TITLE} "
 }
 
 log_success(){
     # green
     T=$(date +%T)
-   _print_colorized '\x1B[92m' "[$T] >> $@"
+   _print_colorized '\x1B[1m\x1B[92m' "[$T] >> $@"
 }
 
 log_info(){
     # blue
     T=$(date +%T)
-    _print_colorized '\x1B[34m' "[$T] >> $@"
+    _print_colorized '\x1B[1m\x1B[34m' "[$T] >> $@"
 }
 
 log_warning(){
     # yellow
     T=$(date +%T)
-    _print_colorized '\x1B[33m' "[$T] >> $@"
+    _print_colorized '\x1B[1m\x1B[7m\x1B[33m' "[$T] >> $@ "
+}
+
+log_error(){
+    # red bold
+    T=$(date +%T)
+    _print_colorized '\x1B[7m\x1B[91m\x1B[1m' "[$T] >> $@ "
 }
 
 panic(){

@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+
+# Fail on Error !
+set -e
+
+# expose temporary paths
+export TARGET_FS=/build/target
+export ROOT_FS=/build/rootfs
+export OUTPUT_DIR=/build/dist
+
+# get function utilities
+source $ROOT_FS/.build/functions
+
+# load config
+source $ROOT_FS/.build/config
+
+# copy static gpg keys
+# -------------------------------------------------
+mkdir -p $TARGET_FS/etc/apt/trusted.gpg.d $TARGET_FS/etc/apt/apt.conf.d
+cp $ROOT_FS/etc/apt/trusted.gpg.d/* $TARGET_FS/etc/apt/trusted.gpg.d
+
+# copy apt proxy config
+cp /etc/hypersolid/apt-proxy.conf $TARGET_FS/etc/apt/apt.conf.d/01-proxy.conf
+
+log_info "starting multistrap"
+
+# run multistrap - $ROOT_FS will be overwritten!
+# -------------------------------------------------
+/usr/sbin/multistrap \
+    --arch $CONF_ARCH \
+    --dir $TARGET_FS \
+    --file /etc/hypersolid/multistrap.ini && {
+        log_info "multistrap finished"
+    } || {
+        panic "multistrap failed"
+    }
+
+# copy additional files AFTER multistrap operation (content will be overwritten)
+log_info "copying rootfs files.."
+cp -RT $ROOT_FS $TARGET_FS
+
+# busybox libmusl
+# required to enabled full busybox support within initramfs (e.g. DNS,losetup)
+BUSYBOX_BIN=
+case "$CONF_ARCH" in
+    armel)
+        BUSYBOX_BIN="busybox-armv5l"
+        ;;
+    armhf)
+        BUSYBOX_BIN="busybox-armv7l"
+        ;;
+    arm64)
+        BUSYBOX_BIN="busybox-armv8l"
+        ;;
+    *)
+        # x86 64 default
+        BUSYBOX_BIN="busybox-x86_64"
+esac
+
+log_info "downloading ${BUSYBOX_BIN}" 
+
+# trigger download
+wget -O $TARGET_FS/bin/busybox https://busybox.net/downloads/binaries/1.31.0-defconfig-multiarch-musl/${BUSYBOX_BIN} && {
+    log_success "done"
+} || {
+    panic "download failed"
+}
+
+# run post multistrap script hook ?
+if [ -x "$TARGET_FS/.build/scripts/post-multistrap.sh" ]; then
+    log_info "hook [post-multistrap]"
+    $TARGET_FS/.build/scripts/post-multistrap.sh
+fi
+
+# arm ? use emulation
+if [[ "$CONF_ARCH" =~ ^(armel|armhf|arm64)$ ]]; then
+    log_warning "emulating target arch $CONF_ARCH"
+
+    # copy qemu binaries
+    cp /usr/bin/qemu-arm-static $TARGET_FS/usr/bin/
+fi
+
+# include microcode ?
+case "$CONF_MICROCODE" in
+    yes|intel-amd)
+        log_info "microcode: include intel+amd microcode"
+        echo "IUCODE_TOOL_INITRAMFS=early" >> $TARGET_FS/etc/default/intel-microcode
+        echo "IUCODE_TOOL_EXTRA_OPTIONS=\"${CONF_MICROCODE_INTEL}\"" >> $TARGET_FS/etc/default/intel-microcode
+        echo "AMD64UCODE_INITRAMFS=early" >> $TARGET_FS/etc/default/amd64-microcode
+        ;;
+    intel)
+        log_info "microcode: include intel microcode"
+        echo "IUCODE_TOOL_INITRAMFS=early" >> $TARGET_FS/etc/default/intel-microcode
+        echo "IUCODE_TOOL_EXTRA_OPTIONS=\"${CONF_MICROCODE_INTEL}\"" >> $TARGET_FS/etc/default/intel-microcode
+        ;;
+    amd)
+        log_info "microcode: include amd microcode"
+        echo "AMD64UCODE_INITRAMFS=early" >> $TARGET_FS/etc/default/amd64-microcode
+        ;;
+    *)
+        log_info "microcode: don't include"
+esac
+

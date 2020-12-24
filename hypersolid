@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-2.0
 
 # _______________________________________________________________
 #
@@ -11,22 +12,27 @@
 #
 #_______________________________________________________________
 
-VERSION="0.6.0"
+# https://github.com/hypersolid-os/hypersolid
+VERSION="1.0.0"
 
 show_usage(){
     cat << EOF
 Usage: hypersolid <command> [args...]
-  Commands:
+build a custom debian image with multistrap into a single squasfs-file with tmpfs overlay
+
+Options:
+    -h,--help                         Displays this help
+    -v,--version                      Displays version
+
+Commands:
     build <target-directory>          Build to target within the directory
     deploy <target-directory>         Deploy a already build target using custom deploy script within working dir
     sign <target-directory>           Run codesigning hook
     build-deploy <target-directory>   Build+deploy target
-    update <target-directory>         Build+codesign+deploy target    
-    attach                            Attach the console to the currently active build environment
+    update <target-directory>         Build+codesign+deploy target
+    attach                            Attach the console to the previous created image
     clean <target>                    Cleanup dist/ directory.
-    
-    --help                            Displays this help
-    --version                         Displays version
+
 EOF
     exit 0
 }
@@ -41,15 +47,12 @@ EOF
     exit 0
 }
 
-# simple processing
-[ "$1" = "--help" ] && show_usage
-[ "$1" = "--version" ] && show_version
+# simple processing for help+versioning commands
+[ "$1" = "--help" ] || [ "$1" = "-h" ] || [ -z "$1" ] && show_usage
+[ "$1" = "--version" ] || [ "$1" = "-v" ] && show_version
 
 # Exit on Error
 set -e
-
-# additional docker build opts
-DOCKER_BUILD_OPTS=""
 
 # basedir
 BASEDIR="$( cd "$( dirname "$(realpath ${BASH_SOURCE[0]})" )" && pwd )"
@@ -81,7 +84,7 @@ function hypersolid_disclaimer(){
     _print_colorized '\x1B[91m\x1B[1m' "This program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of"
     _print_colorized '\x1B[91m\x1B[1m' "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\nSee the GNU General Public License v2 for more details."
     _print_colorized '\x1B[91m\x1B[1m' "_________________________________________________________________\n"
-    _print_colorized '\x1B[1m' "hypersolid ${VERSION} - github.com/hypersolid-os/hypersolid"
+    _print_colorized '\x1B[1m' "hypersolid ${VERSION} - github.com/hypersolid-os/hypersolid\n"
 }
 
 # check directory structure
@@ -102,7 +105,7 @@ function hypersolid_precheck(){
 # ---------------------------------------
 function hypersolid_prepare(){
 
-    log_info "building $TARGET_NAME"
+    print_subheading "building $TARGET_NAME"
 
     # Check directory
     if [ -d "$DIST_DIR" ]; then
@@ -118,76 +121,86 @@ function hypersolid_prepare(){
         panic "target config [$TARGET_DIR] does not exists!"
     fi
 
+    # create build environment
+    $BASEDIR/buildenv/create-hypersolid-env
+
     # read config
     source $TARGET_DIR/config
 
-    # temp dir
-    TMP_DIR=$(mktemp -d)
-    log_info "Temp Dir: $TMP_DIR"
+    # build directory within isolated env
+    BUILD_ENV=/tmp/hypersolid-env
+    BUILD_DIR=$BUILD_ENV/build
+
+    # expose temporary paths $BBUILD_DIR/rootfs
+    ROOT_FS=$BUILD_DIR/rootfs
+    OUTPUT_DIR=$BUILD_DIR/dist
+
+    # cleanup
+    log_info "cleaning up build environment"
+
+    [ -d "$BUILD_DIR" ] && {
+        sudo systemd-nspawn \
+            --quiet \
+            --register=false \
+            --private-users \
+            --directory /tmp/hypersolid-env \
+            rm -rf /build
+    }
 
     # temp dir structure
-    mkdir -p $TMP_DIR/{bootfs,rootfs,basefs,build}
+    mkdir -p $BUILD_DIR/{dist,rootfs,target}
 
     # copy multistrap config
     # -------------------------------------------------
     log_info "adding multistrap configuration"
-    mkdir -p $TMP_DIR/basefs/etc/multistrap
-    cp -R $BASEDIR/multistrap/. $TMP_DIR/basefs/etc/multistrap
-    cp $TARGET_DIR/multistrap.ini $TMP_DIR/basefs/etc/multistrap
+    cp -RT $BASEDIR/multistrap $BUILD_ENV/etc/hypersolid
+    cp $TARGET_DIR/multistrap.ini $BUILD_ENV/etc/hypersolid
 
     # copy initramfs config
     # -------------------------------------------------
     log_info "adding initramfs configuration"
-    mkdir -p $TMP_DIR/rootfs/etc/initramfs-tools
-    cp -R $BASEDIR/initramfs/. $TMP_DIR/rootfs/etc/initramfs-tools
+    mkdir -p $ROOT_FS/etc/initramfs-tools
+    cp -RT $BASEDIR/initramfs $ROOT_FS/etc/initramfs-tools
 
     # copy setup script
     # -------------------------------------------------
     log_info "adding setup scripts"
-    mkdir -p $TMP_DIR/rootfs/.build
-    cp -R $BASEDIR/setup/. $TMP_DIR/rootfs/.build
+    mkdir -p $ROOT_FS/.build
+    cp -RT $BASEDIR/setup $ROOT_FS/.build
 
     # copy generic rootfs files
     # -------------------------------------------------
     log_info "adding generic root file system"
-    cp -RT $BASEDIR/rootfs $TMP_DIR/rootfs
+    cp -RT $BASEDIR/rootfs $ROOT_FS
 
     # copy target files
     # -------------------------------------------------
     log_info "adding target specific files"
-    cp -TR $TARGET_DIR/rootfs $TMP_DIR/rootfs && log_info "generic rootfs copied"
-    cp -TR $TARGET_DIR/bootfs $TMP_DIR/bootfs || log_info "bootfs files not available..skipping"
-    cp -R $TARGET_DIR/scripts $TMP_DIR/rootfs/.build/scripts || log_info "script files not available..skipping"
-    cp -R $TARGET_DIR/config $TMP_DIR/rootfs/.build/config && log_info "generic rootfs copied"
+    cp -TR $TARGET_DIR/rootfs $ROOT_FS && log_info "generic rootfs copied"
+    #cp -TR $TARGET_DIR/bootfs $BUILD_DIR/bootfs || log_info "bootfs files not available..skipping"
+    cp -R $TARGET_DIR/scripts $ROOT_FS/.build/scripts || log_info "script files not available..skipping"
+    cp -R $TARGET_DIR/config $ROOT_FS/.build/config && log_info "generic rootfs copied"
 
     # custom module file available ?
     if [ -f $TARGET_DIR/modules ]; then
         log_info "adding initramfs module config"
-        cp $TARGET_DIR/modules $TMP_DIR/rootfs/etc/initramfs-tools/modules
+        cp $TARGET_DIR/modules $ROOT_FS/etc/initramfs-tools/modules
     fi
 
     # custom initramfs config available ?
     if [ -d $TARGET_DIR/initramfs ]; then
         log_info "adding custom initramfs config"
-        cp -R $TARGET_DIR/initramfs/. $TMP_DIR/rootfs/etc/initramfs-tools
+        cp -R $TARGET_DIR/initramfs/. $ROOT_FS/etc/initramfs-tools
     fi
 
     # apt proxy conf exists ?
     if [ -f $WORKINGDIR/apt-proxy.conf ]; then
         log_info "using apt-proxy config"
         # copy into build context
-        cp $WORKINGDIR/apt-proxy.conf $TMP_DIR/basefs/apt-proxy.conf
+        cp $WORKINGDIR/apt-proxy.conf $BUILD_ENV/etc/hypersolid/apt-proxy.conf
     else
-        touch $TMP_DIR/basefs/apt-proxy.conf
+        touch $BUILD_ENV/etc/hypersolid/apt-proxy.conf
     fi
-}
-
-# cleanup build
-# ---------------------------------------
-function hypersolid_cleanup(){
-    # cleanup
-    log_info "cleaning up temporary directory"
-    [ -d $TMP_DIR ] && rm -rf $TMP_DIR
 }
 
 # run hook
@@ -218,55 +231,6 @@ function hypersolid_hook_exec(){
     $HOOK_FN
 }
 
-# run dockerized build
-# ---------------------------------------
-function hypersolid_dockerbuild(){
-
-    # prepare env
-    hypersolid_prepare
-
-    # call hook
-    hypersolid_hook_exec "pre-build"
-
-    log_info "running docker isolated build $TARGET_NAME"
-
-    # build buildsystem image
-    log_info "building build-system"
-    docker build $DOCKER_BUILD_OPTS \
-        -t hypersolid-build \
-        -f $BASEDIR/Dockerfile \
-        $TMP_DIR/basefs || {
-            panic "docker build failed"
-        }
-
-    # run build
-    log_info "executing build scripts"
-    docker run \
-        --env HYPERSOLID_UUID=$HYPERSOLID_UUID \
-        --env HYPERSOLID_NAME=$TARGET_NAME \
-        --env HYPERSOLID_ROOTPW=$HYPERSOLID_ROOTPW \
-        --volume $TMP_DIR:/opt \
-        --rm \
-        --privileged \
-        hypersolid-build \
-        /opt/rootfs/.build/entrypoint.sh || {
-            panic "hypersolid build failed"
-        }
-
-    # copy files to dist dir
-    cp -RT $TMP_DIR/bootfs $DIST_DIR && {
-        log_info "images copied to $DIST_DIR"
-    }
-
-    # remove temp dirs
-    hypersolid_cleanup
-
-    # call hook
-    hypersolid_hook_exec "post-build"
-
-    print_heading "BUILD READY" '\x1B[92m\x1B[1m'
-}
-
 # run build on current hostsystem with systemd-nspawn
 # ---------------------------------------
 function hypersolid_nspawnbuild(){
@@ -276,44 +240,77 @@ function hypersolid_nspawnbuild(){
     # call hook
     hypersolid_hook_exec "pre-build"
 
-    log_info "running hostsystem based build $TARGET_NAME"
+    log_info "running nspawn based build of $TARGET_NAME"
 
-    # expose temporary paths
-    export BASEFS=$TMP_DIR/basefs
-    export BUILDFS=$TMP_DIR/build
-    export ROOTFS=$TMP_DIR/rootfs
-    export BOOTFS=$TMP_DIR/bootfs
+    # stage 1 - run multistrap within isolated env
+    print_subheading "[stage1] download + prepare packages"
+    sudo systemd-nspawn \
+        --register=false \
+        --private-users \
+        --directory /tmp/hypersolid-env \
+        -E HYPERSOLID_UUID=$HYPERSOLID_UUID \
+        -E HYPERSOLID_NAME=$TARGET_NAME \
+        -E HYPERSOLID_ROOTPW=$HYPERSOLID_ROOTPW \
+        "/build/rootfs/.build/multistrap"
 
-    # run entrypoint
-    cd $TMP_DIR
-    $TMP_DIR/rootfs/.build/entrypoint.sh
+    # stage 2 - configure packages+system in final rootfs
+    print_subheading "[stage2] chroot into rootfs to execute postinstall actions"
+    sudo systemd-nspawn \
+        --register=false \
+        --private-users \
+        --directory /tmp/hypersolid-env/build/target \
+        -E HYPERSOLID_UUID=$HYPERSOLID_UUID \
+        -E HYPERSOLID_NAME=$TARGET_NAME \
+        -E HYPERSOLID_ROOTPW=$HYPERSOLID_ROOTPW \
+        "/.build/dpkg-configure"
+
+    # stage 3 - finalize build, create package
+    print_subheading "[stage3] finalize build + creating package"
+    sudo systemd-nspawn \
+        --register=false \
+        --private-users \
+        --directory /tmp/hypersolid-env \
+        -E HYPERSOLID_UUID=$HYPERSOLID_UUID \
+        -E HYPERSOLID_NAME=$TARGET_NAME \
+        -E HYPERSOLID_ROOTPW=$HYPERSOLID_ROOTPW \
+        "/build/rootfs/.build/finalize"
 
     # copy files to dist dir
-    cp -RT $TMP_DIR/bootfs $DIST_DIR && {
-        log_info "images copied to $DIST_DIR"
+    print_subheading "copying build artifacts"
+    cp -RT $OUTPUT_DIR $DIST_DIR && {
+        log_success "images copied to $DIST_DIR"
     }
-
-    # remove temp dirs
-    hypersolid_cleanup
 
     # call hook
     hypersolid_hook_exec "post-build"
 
+    # final message
     print_heading "BUILD READY" '\x1B[92m\x1B[1m'
 }
 
 # attach to current active build system
 # ---------------------------------------
 function hypersolid_attach(){
-    log_info "attaching to build environment. press ctrl+d to quit."
-    echo ""
-    docker start -i hypersolid-env
+
+    # env active ?
+    [ ! -d "/tmp/hypersolid-env/build/target" ] && {
+        log_error "hypersolid target environment not exist!"
+        exit 1
+    }
+
+    print_subheading "attaching to build environment.."
+
+    sudo systemd-nspawn \
+        --register=false \
+        --private-users \
+        --directory /tmp/hypersolid-env/build/target \
+        /bin/bash
 }
 
 # remove files within dist directory of specific target
 # ---------------------------------------
 function hypersolid_clean_dist(){
-    log_info "removing artifacts of target $TARGET_NAME"
+    print_subheading "removing artifacts of target $TARGET_NAME"
 
     # dist directory exists ?
     if [ -d "$DIST_DIR" ]; then
@@ -374,7 +371,7 @@ case "$1" in
     ;;
 
     attach)
-        #hypersolid_attach
+        hypersolid_attach
         exit 0
     ;;
 

@@ -7,10 +7,10 @@ export LC_ALL=C LANGUAGE=C LANG=C
 set -e
 
 # get function utilities
-source $ROOTFS/.build/functions
+source /.build/functions
 
 # load config
-source $ROOTFS/.build/config
+source /.build/config
 
 # run pre configure script hook ?
 if [ -x "/.build/scripts/pre-chroot.sh" ]; then
