@@ -68,6 +68,9 @@ TARGET_DIR=$WORKINGDIR/$TARGET_NAME
 DIST_BASEDIR=$WORKINGDIR/dist
 DIST_DIR=$DIST_BASEDIR/$TARGET_NAME
 
+# build directory within isolated env
+BUILD_ENV=/tmp/hypersolid-env
+
 # get function utilities
 source $BASEDIR/setup/functions
 
@@ -101,6 +104,14 @@ function hypersolid_precheck(){
     fi
 }
 
+# prepare build environment
+# ---------------------------------------
+function hypersolid_prepare_buildenv(){
+
+    # create build environment
+    $BASEDIR/buildenv/create-hypersolid-env "$BUILD_ENV"
+}
+
 # prepare build
 # ---------------------------------------
 function hypersolid_prepare(){
@@ -121,19 +132,16 @@ function hypersolid_prepare(){
         panic "target config [$TARGET_DIR] does not exists!"
     fi
 
-    # create build environment
-    $BASEDIR/buildenv/create-hypersolid-env
+    # create hypersolid environment (debian rootfs)
+    hypersolid_prepare_buildenv
+
+    # expose temporary paths
+    BUILD_DIR=$BUILD_ENV/build
+    ROOT_FS=$BUILD_DIR/rootfs
+    OUTPUT_DIR=$BUILD_DIR/dist
 
     # read config
     source $TARGET_DIR/config
-
-    # build directory within isolated env
-    BUILD_ENV=/tmp/hypersolid-env
-    BUILD_DIR=$BUILD_ENV/build
-
-    # expose temporary paths $BBUILD_DIR/rootfs
-    ROOT_FS=$BUILD_DIR/rootfs
-    OUTPUT_DIR=$BUILD_DIR/dist
 
     # cleanup
     log_info "cleaning up build environment"
@@ -329,7 +337,6 @@ case "$1" in
     build)
         hypersolid_intro
         hypersolid_precheck
-        #hypersolid_dockerbuild
         hypersolid_nspawnbuild
         exit 0
     ;;
@@ -372,6 +379,11 @@ case "$1" in
 
     attach)
         hypersolid_attach
+        exit 0
+    ;;
+
+    create-env)
+        hypersolid_prepare_buildenv
         exit 0
     ;;
 

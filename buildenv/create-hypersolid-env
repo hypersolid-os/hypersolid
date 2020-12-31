@@ -6,51 +6,68 @@ set -e
 BASEDIR="$( cd "$( dirname "$(realpath ${BASH_SOURCE[0]})" )" && pwd )"
 WORKINGDIR="$(pwd)"
 
-CACHE_DIR=/tmp/hypersolid-env
+# get function utilities
+source $BASEDIR/../setup/functions
+
+# build environment path set ?
+if [ -z "$1" ]; then
+    log_error "build environment path not set"
+    exit 1
+fi
+
+# assign
+BUILD_ENV="$1"
 
 # directory alreay exists ?
-[ ! -d "$CACHE_DIR" ] && {
+[ ! -d "$BUILD_ENV" ] && {
     # create cache dir
-    mkdir $CACHE_DIR
+    mkdir $BUILD_ENV
 } || {
-    echo "build env already exist..skipping"
+    log_info "build env already exist..skipping"
     exit 0
 }
 
 # create apt config dirs
-mkdir -p $CACHE_DIR/etc/apt/trusted.gpg.d $CACHE_DIR/etc/apt/apt.conf.d
+mkdir -p $BUILD_ENV/etc/apt/trusted.gpg.d $BUILD_ENV/etc/apt/apt.conf.d
 
 # copy keyrings
-cp -RT $BASEDIR/../rootfs/etc/apt/trusted.gpg.d $CACHE_DIR/etc/apt/trusted.gpg.d
+cp -RT $BASEDIR/../rootfs/etc/apt/trusted.gpg.d $BUILD_ENV/etc/apt/trusted.gpg.d
 
 # copy apt proxy config if exist
 [ -f "$WORKINGDIR/../apt-proxy.conf" ] && {
-    cp $WORKINGDIR/../apt-proxy.conf $CACHE_DIR/etc/apt/apt.conf.d/01-proxy.conf
+    cp $WORKINGDIR/../apt-proxy.conf $BUILD_ENV/etc/apt/apt.conf.d/01-proxy.conf
 }
 
-echo "starting multistrap"
+print_subheading "starting multistrap.."
 
 # run multistrap as current user (uid/gid not set properly but not required)
 /usr/sbin/multistrap \
     --arch "amd64" \
-    --dir $CACHE_DIR \
+    --dir $BUILD_ENV \
     --file $BASEDIR/multistrap.ini && {
-        echo "multistrap finished"
+        log_success "multistrap finished"
     } || {
-        echo "multistrap failed"
+        log_error "multistrap failed"
         exit 1
     }
 
 # copy configure script
-cp $BASEDIR/dpkg-configure $CACHE_DIR/dpkg-configure
+cp $BASEDIR/dpkg-configure $BUILD_ENV/dpkg-configure
 
 # create config path for multistrap operation
-mkdir -p $CACHE_DIR/etc/hypersolid
+mkdir -p $BUILD_ENV/etc/hypersolid
+
+print_subheading "configuring packages.."
 
 # configure build environment system
 sudo systemd-nspawn \
     --register=false \
     --private-users \
-    --directory $CACHE_DIR \
-    ./dpkg-configure
+    --directory $BUILD_ENV \
+    ./dpkg-configure && {
+        log_success "package configuration finished"
+    } || {
+        log_error "package configuration finished"
+        exit 1
+    }
 
