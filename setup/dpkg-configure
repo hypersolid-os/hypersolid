@@ -63,6 +63,7 @@ mkinitramfs -o /boot/initramfs.img -v "$(cat /etc/kernel_version)"
 log_info "removing temporary packages.."
 if [ "$CONF_APT" == "keep" ]; then
     dpkg -r --force-depends busybox-static initramfs-tools
+    rm /etc/apt/apt.conf.d/01-proxy.conf
 else
     dpkg -r --force-depends busybox-static initramfs-tools apt debian-archive-keyring
 fi
