@@ -264,6 +264,8 @@ function hypersolid_nspawnbuild(){
     # stage 2 - configure packages+system in final rootfs
     print_subheading "[stage2] chroot into rootfs to execute postinstall actions"
     sudo systemd-nspawn \
+        --resolv-conf=off \
+        --timezone=off \
         --register=false \
         --private-users \
         --directory /tmp/hypersolid-env/build/target \
