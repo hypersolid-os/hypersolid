@@ -18,11 +18,11 @@ CHR_INFO=${debian_chroot:+($debian_chroot)}
 # set a fancy prompt (non-color, overwrite the one in /etc/profile)
 if [[ $EUID -eq 0 ]]; then
   # root user
-  PS1='\n${CHR_INFO}\e[31m\e[1m\u@\h\e[0m \e[94m\w\n \e[31m\e[1m#\e[0m\e[0m\e[39m\e[49m '
+  PS1='\n${CHR_INFO}\e[31m\e[1m\u@\H\e[0m \e[94m\w\n \e[31m\e[1m#\e[0m\e[0m\e[39m\e[49m '
 
 else
   # non root
-  PS1='\n${CHR_INFO}\e[92m\e[1m\u@\h\e[0m \e[94m\w\n \e[92m\e[1m$\e[0m\e[0m\e[39m\e[49m '
+  PS1='\n${CHR_INFO}\e[92m\e[1m\u@\H\e[0m \e[94m\w\n \e[92m\e[1m$\e[0m\e[0m\e[39m\e[49m '
 
 fi
 
