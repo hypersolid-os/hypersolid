@@ -1,3 +1,13 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MPL-2.0
+
+# Version: 0.3.0
+# https://github.com/AndiDittrich/bash-functions
+# ----------------------------------
+# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. 
+# If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# ----------------------------------
+
 _print_colorized(){
     # extract color
     STYLE="$1"
@@ -6,7 +16,6 @@ _print_colorized(){
     shift
 
     # print colorized message
-    IFS=''
     echo -e "${STYLE}$*\e[0m"
 }
 
@@ -22,17 +31,14 @@ print_heading(){
         STYLE="$2"
     }
 
-    # default title, text only
-    TITLE="$1"
-
-    # figlet available ?
-    command -v figlet > /dev/null && {
-        TITLE=$(figlet "${TITLE}")
-    }
+    # std title 
+    TITLE="${1}"
 
     # print heading
     _print_colorized "$STYLE" \
-        "${TITLE}\n\n"
+        "\n---------------------------------------------------------------\n" \
+        "${TITLE}" \
+        "\n---------------------------------------------------------------\n"
 }
 
 print_subheading(){
@@ -58,30 +64,107 @@ print_subheading(){
 
 log_success(){
     # green
-    T=$(date +%T)
+    local T=$(date +%T)
    _print_colorized '\x1B[1m\x1B[92m' "[$T] >> $@"
 }
 
 log_info(){
     # blue
-    T=$(date +%T)
+    local T=$(date +%T)
     _print_colorized '\x1B[1m\x1B[34m' "[$T] >> $@"
 }
 
 log_warning(){
     # yellow
-    T=$(date +%T)
+    local T=$(date +%T)
     _print_colorized '\x1B[1m\x1B[7m\x1B[33m' "[$T] >> $@ "
 }
 
 log_error(){
     # red bold
-    T=$(date +%T)
+    local T=$(date +%T)
     _print_colorized '\x1B[7m\x1B[91m\x1B[1m' "[$T] >> $@ "
 }
 
 panic(){
-    print_heading " > build failed" '\x1B[91m\x1B[1m'
     log_error "$@"
     exit 1
+}
+
+hook_exec(){
+    log_info "hook [$1] triggered"
+
+    # hook set ?
+    if [ -z "$1" ]; then
+        log_error "invalid hook call"
+        return
+    fi
+
+    # default hook source
+    local HOOK_FILE="$BASEDIR/.hooks/$1"
+
+    # hook file exists in working dir ?
+    if [ -f $WORKINGDIR/.hooks/$1 ]; then
+        local HOOK_FILE="$WORKINGDIR/.hooks/$1"
+    fi
+
+    # executable ?
+    if [ ! -f $HOOK_FILE ] || [ ! -x $HOOK_FILE ]; then
+        log_info "hook [$HOOK_FILE] cannot be executed"
+        return
+    fi
+
+    # run hook
+    log_info "running hook [$1].."
+    HOOK_FN="hook_$1"
+    source $HOOK_FILE
+    $HOOK_FN $2
+}
+
+scriptd_exec(){
+    # hook name provided ?
+    if [ -z "$1" ]; then
+        log_error "invalid script exec call - hook name not provided"
+        return
+    fi
+
+    # hook dir set ?
+    if [ -z "$2" ]; then
+        log_error "invalid script exec call - dir not provided"
+        return
+    fi
+
+    log_info "script hook [$1] triggered"
+
+    local LEGACY_FILENAME="${2}/${1}.sh"
+
+    # single file hook found ?
+    if [ -x "$LEGACY_FILENAME" ]; then
+        log_info "> invoking legacy script"
+        $LEGACY_FILENAME
+    fi
+
+    # hook dir valid ?
+    if [ ! -d "${2}/${1}.d" ]; then
+        log_info "> no hook dir available"
+        return
+    fi
+
+    log_info "> processing [${2}.d/${1}]"
+
+    # get all files with leading priority "00-"
+    find "${2}/${1}.d" -type f,l | grep -E '/[0-9]+-.*$' | sort | while read -r file
+    do
+
+        # show filename
+        log_info "> invoking [$1/$file]"
+
+        # executable ?
+        if [ ! -f $file ] || [ ! -x $file ]; then
+            log_error "hook [$1/$file] cannot be executed"
+        fi
+
+        # execute script
+        $file
+    done
 }

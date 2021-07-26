@@ -15,10 +15,7 @@ source $ROOT_FS/.build/functions
 source $ROOT_FS/.build/config
 
 # run post configure script hook ?
-if [ -x "$TARGET_FS/.build/scripts/post-configure.sh" ]; then
-    log_info "hook [post-configure]"
-    $TARGET_FS/.build/scripts/post-configure.sh
-fi
+scriptd_exec "post-configure" "$TARGET_FS/.build/scripts"
 
 # move initramfs
 mv $TARGET_FS/boot/initramfs.img $OUTPUT_DIR/initramfs.img
@@ -66,7 +63,4 @@ if [ "$CONF_IMAGE_TYPE" = "cpio" ]; then
 fi
 
 # run post build script hook ?
-if [ -x "$TARGET_FS/.build/scripts/post-build.sh" ]; then
-    log_info "hook [post-build]"
-    $TARGET_FS/.build/scripts/post-build.sh
-fi
+scriptd_exec "post-build" "$TARGET_FS/.build/scripts"

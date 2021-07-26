@@ -112,6 +112,47 @@ function hypersolid_prepare_buildenv(){
     $BASEDIR/buildenv/create-hypersolid-env "$BUILD_ENV"
 }
 
+# copy/merge sources
+# ---------------------------------------
+function hypersolid_copy_sources(){
+
+    # copy target files
+    # -------------------------------------------------
+    log_info "adding target specific files"
+    cp -TR $1/rootfs $ROOT_FS && log_info "target rootfs copied"
+    #cp -TR $1/bootfs $BUILD_DIR/bootfs || log_info "bootfs files not available..skipping"
+
+    # scripts available ?
+    if [ -d "$1/scripts" ]; then
+        log_info "adding scripts"
+         cp -RT $1/scripts $ROOT_FS/.build/scripts
+    fi
+
+    # config available ?
+    if [ -f $1/config ]; then
+        log_info "target config copied"
+        cp $1/config $ROOT_FS/.build/config
+    fi
+
+    # custom module file available ?
+    if [ -f $1/modules ]; then
+        log_info "adding initramfs module config"
+        cp $1/modules $ROOT_FS/etc/initramfs-tools/modules
+    fi
+
+    # custom initramfs config available ?
+    if [ -d $1/initramfs ]; then
+        log_info "adding custom initramfs config"
+        cp -R $1/initramfs/. $ROOT_FS/etc/initramfs-tools
+    fi
+
+    # custom multistrap config available ?
+    if [ -f $1/multistrap.ini ]; then
+        log_info "adding custom multistrap config"
+        cp $1/multistrap.ini $BUILD_ENV/etc/hypersolid
+    fi
+}
+
 # prepare build
 # ---------------------------------------
 function hypersolid_prepare(){
@@ -155,14 +196,13 @@ function hypersolid_prepare(){
             rm -rf /build
     }
 
-    # temp dir structure
+    # create temp dir structure
     mkdir -p $BUILD_DIR/{dist,rootfs,target}
 
     # copy multistrap config
     # -------------------------------------------------
-    log_info "adding multistrap configuration"
+    log_info "adding multistrap base configuration"
     cp -RT $BASEDIR/multistrap $BUILD_ENV/etc/hypersolid
-    cp $TARGET_DIR/multistrap.ini $BUILD_ENV/etc/hypersolid
 
     # copy initramfs config
     # -------------------------------------------------
@@ -178,28 +218,20 @@ function hypersolid_prepare(){
 
     # copy generic rootfs files
     # -------------------------------------------------
-    log_info "adding generic root file system"
+    print_subheading "adding generic root file system"
     cp -RT $BASEDIR/rootfs $ROOT_FS
 
-    # copy target files
+    # copy base rootfs files from extended target
     # -------------------------------------------------
-    log_info "adding target specific files"
-    cp -TR $TARGET_DIR/rootfs $ROOT_FS && log_info "generic rootfs copied"
-    #cp -TR $TARGET_DIR/bootfs $BUILD_DIR/bootfs || log_info "bootfs files not available..skipping"
-    cp -R $TARGET_DIR/scripts $ROOT_FS/.build/scripts || log_info "script files not available..skipping"
-    cp -R $TARGET_DIR/config $ROOT_FS/.build/config && log_info "generic rootfs copied"
-
-    # custom module file available ?
-    if [ -f $TARGET_DIR/modules ]; then
-        log_info "adding initramfs module config"
-        cp $TARGET_DIR/modules $ROOT_FS/etc/initramfs-tools/modules
+    if [ ! -z "$CONF_EXTEND" ]; then
+        print_subheading "adding extended target"
+        hypersolid_copy_sources "$WORKINGDIR/$CONF_EXTEND"
     fi
 
-    # custom initramfs config available ?
-    if [ -d $TARGET_DIR/initramfs ]; then
-        log_info "adding custom initramfs config"
-        cp -R $TARGET_DIR/initramfs/. $ROOT_FS/etc/initramfs-tools
-    fi
+    # copy target rootfs files
+    # -------------------------------------------------
+    print_subheading "adding target"
+    hypersolid_copy_sources $TARGET_DIR
 
     # apt proxy conf exists ?
     if [ -f $WORKINGDIR/apt-proxy.conf ]; then
@@ -211,34 +243,6 @@ function hypersolid_prepare(){
     fi
 }
 
-# run hook
-# ---------------------------------------
-function hypersolid_hook_exec(){
-    log_info "hook [$1] triggered"
-
-    # hook set ?
-    if [ -z "$1" ]; then
-        log_error "invalid hook call"
-        return
-    fi
-
-    # hook file exists ?
-    if [ ! -f $WORKINGDIR/.hooks/$1 ]; then
-        return
-    fi
-
-    # executable ?
-    if [ ! -x $WORKINGDIR/.hooks/$1 ]; then
-        panic "hook [$WORKINGDIR/.hooks/$1] is not executable"
-    fi
-
-    # run hook
-    log_info "running hook [$1].."
-    HOOK_FN="hook_$1"
-    source $WORKINGDIR/.hooks/$1
-    $HOOK_FN
-}
-
 # run build on current hostsystem with systemd-nspawn
 # ---------------------------------------
 function hypersolid_nspawnbuild(){
@@ -246,7 +250,7 @@ function hypersolid_nspawnbuild(){
     hypersolid_prepare
 
     # call hook
-    hypersolid_hook_exec "pre-build"
+    hook_exec "pre-build"
 
     log_info "running nspawn based build of $TARGET_NAME"
 
@@ -292,7 +296,7 @@ function hypersolid_nspawnbuild(){
     }
 
     # call hook
-    hypersolid_hook_exec "post-build"
+    hook_exec "post-build"
 
     # final message
     print_heading "BUILD READY" '\x1B[92m\x1B[1m'
@@ -346,7 +350,7 @@ case "$1" in
     deploy)
         hypersolid_intro
         hypersolid_precheck
-        hypersolid_hook_exec "deploy"
+        hook_exec "deploy"
         exit 0
     ;;
 
@@ -354,7 +358,7 @@ case "$1" in
         hypersolid_intro
         hypersolid_precheck
         hypersolid_nspawnbuild
-        hypersolid_hook_exec "deploy"
+        hook_exec "deploy"
         exit 0
     ;;
 
@@ -362,15 +366,15 @@ case "$1" in
         hypersolid_intro
         hypersolid_precheck
         hypersolid_nspawnbuild
-        hypersolid_hook_exec "codesigning"
-        hypersolid_hook_exec "deploy"
+        hook_exec "codesigning"
+        hook_exec "deploy"
         exit 0
     ;;
 
     sign)
         hypersolid_intro
         hypersolid_precheck
-        hypersolid_hook_exec "codesigning"
+        hook_exec "codesigning"
         exit 0
     ;;
 

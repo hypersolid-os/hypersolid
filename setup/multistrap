@@ -67,10 +67,7 @@ wget -O $TARGET_FS/bin/busybox https://busybox.net/downloads/binaries/1.31.0-def
 }
 
 # run post multistrap script hook ?
-if [ -x "$TARGET_FS/.build/scripts/post-multistrap.sh" ]; then
-    log_info "hook [post-multistrap]"
-    $TARGET_FS/.build/scripts/post-multistrap.sh
-fi
+scriptd_exec "post-multistrap" "$TARGET_FS/.build/scripts"
 
 # arm ? use emulation
 if [[ "$CONF_ARCH" =~ ^(armel|armhf|arm64)$ ]]; then

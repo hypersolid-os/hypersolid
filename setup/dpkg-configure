@@ -13,10 +13,7 @@ source /.build/functions
 source /.build/config
 
 # run pre configure script hook ?
-if [ -x "/.build/scripts/pre-chroot.sh" ]; then
-    log_info "hook [pre-chroot]"
-    /.build/scripts/pre-chroot.sh
-fi
+scriptd_exec "pre-chroot" "/.build/scripts"
 
 # configure packages
 log_info "configuring packages.."
@@ -94,10 +91,7 @@ $(date)
 EOF
 
 # run post configure script hook ?
-if [ -x "/.build/scripts/post-chroot.sh" ]; then
-    log_info "hook [post-chroot]"
-    /.build/scripts/post-chroot.sh
-fi
+scriptd_exec "post-chroot" "/.build/scripts"
 
 # success
 log_success "postinstall actions finished"
