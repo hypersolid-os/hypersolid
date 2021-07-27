@@ -13,7 +13,7 @@
 #_______________________________________________________________
 
 # https://github.com/hypersolid-os/hypersolid
-VERSION="1.0.0"
+VERSION="1.1.1"
 
 show_usage(){
     cat << EOF
