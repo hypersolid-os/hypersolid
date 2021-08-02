@@ -9,6 +9,7 @@ Usage: pstorage <command> [args...]
     view|ls|inspect             Show all files within the persistent storage mount
     rw                          Remount the persistent storage parition as writeable
     ro                          Remount the persistent storage parition as readonly
+    reload                      Clear filesystem cache to apply changes made in lowerdir
     persist                     Make config set persistent
         > services              Systemd config /etc/systemd/system/{*target.wants}
         > users                 users/groups
@@ -46,6 +47,14 @@ OVERLAY_UPPER=$MNT_TMPFS/.upper
 if [ -z "$1" ]; then
     show_usage
 fi
+
+# clear filecaches/apply overlayfs changes
+# ----------------------------------------------
+function clearFSCache(){
+    echo 3 > /proc/sys/vm/drop_caches && {
+        echo "cached dropped"
+    }
+}
 
 # pstorage mounted ?
 # ----------------------------------------------
@@ -160,6 +169,11 @@ case "$1:$2" in
     
     ro:*)
         remountRO
+        exit 0
+    ;;
+
+    reload:*)
+        clearFSCache
         exit 0
     ;;
 

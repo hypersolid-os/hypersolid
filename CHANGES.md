@@ -4,6 +4,11 @@ Changelog
 Branch 1.x
 ---------------------------
 
+### 1.2.0 ###
+
+* Added: `pstorage reload` command to clear filesystem cache - apply changes made in lowerdir
+* Changed: busybox binaries included as assets
+
 ### 1.1.0 ###
 
 * Added: support for derived images (inheritance)

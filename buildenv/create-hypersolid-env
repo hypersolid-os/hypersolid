@@ -57,6 +57,12 @@ cp $BASEDIR/dpkg-configure $BUILD_ENV/dpkg-configure
 # create config path for multistrap operation
 mkdir -p $BUILD_ENV/etc/hypersolid
 
+# create assets dir
+mkdir -p $BUILD_ENV/usr/share/hypersolid
+
+# copy assets
+cp -RT $BASEDIR/../assets $BUILD_ENV/usr/share/hypersolid
+
 print_subheading "configuring packages.."
 
 # configure build environment system

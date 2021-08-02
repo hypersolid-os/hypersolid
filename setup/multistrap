@@ -57,13 +57,10 @@ case "$CONF_ARCH" in
         BUSYBOX_BIN="busybox-x86_64"
 esac
 
-log_info "downloading ${BUSYBOX_BIN}" 
-
-# trigger download
-wget -O $TARGET_FS/bin/busybox https://busybox.net/downloads/binaries/1.31.0-defconfig-multiarch-musl/${BUSYBOX_BIN} && {
-    log_success "done"
+cp /usr/share/hypersolid/busybox/${BUSYBOX_BIN} $TARGET_FS/bin/busybox && {
+    log_success "${BUSYBOX_BIN} added"
 } || {
-    panic "download failed"
+    panic "busybox copy failed"
 }
 
 # run post multistrap script hook ?
