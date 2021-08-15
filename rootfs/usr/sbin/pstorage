@@ -13,6 +13,7 @@ Usage: pstorage <command> [args...]
     persist                     Make config set persistent
         > services              Systemd config /etc/systemd/system/{*target.wants}
         > users                 users/groups
+        > <path>                Persist all files within given path
     --help                      Displays this help
     --version                   Displays version
 EOF
@@ -153,6 +154,56 @@ function persistUsers(){
     remountRO
 }
 
+# persist path
+# ----------------------------------------------
+function persistPath(){
+    # ensure storage is mounted
+    remountRW
+
+    # log
+    echo "copying files.."
+
+    # is path available ?
+    if [ ! -e "$1" ]; then
+        echo "path [${1}] doesn't exist"
+        remountRO
+        exit 1
+    fi
+
+    # get real path
+    RESOURCE_PATH=$(realpath $1)
+
+    # single file ?
+    if [ -f "$RESOURCE_PATH" ]; then
+        DIRNAME=$(dirname $RESOURCE_PATH)
+
+        # create path
+        mkdir -p ${PSTORAGE_MOUNT}${DIRNAME}
+
+        # copy file
+        cp $RESOURCE_PATH ${PSTORAGE_MOUNT}${RESOURCE_PATH} && {
+            echo "file ${RESOURCE_PATH} copied"
+        } || {
+            echo "unable to copy file to persistent storage"
+        }
+    fi
+
+    # directory ?
+    if [ -d "$RESOURCE_PATH" ]; then
+        # create path
+        mkdir -p ${PSTORAGE_MOUNT}${RESOURCE_PATH}
+
+        # copy files (full sync)
+        rsync -av $RESOURCE_PATH/ ${PSTORAGE_MOUNT}${RESOURCE_PATH}/ && {
+            echo "directory ${RESOURCE_PATH} copied"
+        } || {
+            echo "unable to copy files to persistent storage"
+        }
+    fi
+
+    # readonly
+    remountRO
+}
 
 # Command Dispatching
 # ---------------------------------------
@@ -184,6 +235,11 @@ case "$1:$2" in
 
     persist:users)
         persistUsers
+        exit 0
+    ;;
+
+    persist:*)
+        persistPath $2
         exit 0
     ;;
 
