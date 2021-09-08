@@ -1,15 +1,8 @@
 [Unit]
-Description=firstboot initialization of ssh keys
+Description=hypersolid firstboot system initialization
 
-# Start before Network Interfaces coming up
-Before=network-pre.target
-Wants=network-pre.target
-
-# Requires local FS
-After=local-fs.target
-
-# Do not start after basic.target!
-DefaultDependencies=no
+# Start before ssh server starts
+Before=sshd.service
 
 [Service]
 ExecStart=/usr/sbin/hypersolid-firstboot
@@ -17,6 +10,9 @@ ExecStart=/usr/sbin/hypersolid-firstboot
 # Just Execute the shell script
 Type=oneshot
 RemainAfterExit=yes
+
+# force timeout
+TimeoutStartSec=60s
 
 [Install]
 WantedBy=multi-user.target

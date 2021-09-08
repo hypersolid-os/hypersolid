@@ -5,10 +5,10 @@ set -e
 export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true
 
 # persistent storage dir
-PSTORAGE_MOUNT=/mnt/storage
+PSTORAGE_MOUNT="/mnt/storage"
 
 # persistent storage mounted ?
-if mountpoint $PSTORAGE_MOUNT > /dev/null; then
+if mountpoint ${PSTORAGE_MOUNT} > /dev/null; then
     echo "persistent storage available"
 else
     echo "no persistent storage available..exiting"
@@ -20,15 +20,18 @@ pstorage rw
 
 # generate unique SSH Keys and store them within pstorage
 # ------------------------------
-echo "generating ssh host keys.."
-dpkg-reconfigure openssh-server
-mkdir -p $PSTORAGE_MOUNT/etc/ssh
-cp /etc/ssh/ssh_host_* $PSTORAGE_MOUNT/etc/ssh
+mkdir -p ${PSTORAGE_MOUNT}/etc/ssh
+echo "generating rsa ssh host key.."
+ssh-keygen -q -N "" -t rsa -b 4096 -f ${PSTORAGE_MOUNT}/etc/ssh/ssh_host_rsa_key
+
+echo "generating ed25519 ssh host key.."
+ssh-keygen -q -N "" -t ed25519 -f ${PSTORAGE_MOUNT}/etc/ssh/ssh_host_ed25519_key
 
 # disable service by masking it
 # ------------------------------
-mkdir -p $PSTORAGE_MOUNT/etc/systemd/system/
-ln -s /dev/null $PSTORAGE_MOUNT/etc/systemd/system/hypersolid-firstboot.service
+echo "disable hypersolid firstboot service"
+mkdir -p ${PSTORAGE_MOUNT}/etc/systemd/system/
+ln -s /dev/null ${PSTORAGE_MOUNT}/etc/systemd/system/hypersolid-firstboot.service
 
 # set storage readonly
 pstorage ro
