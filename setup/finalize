@@ -37,7 +37,6 @@ mksquashfs $TARGET_FS $OUTPUT_DIR/system.img "${CONF_SQUASHFS_ARGS[@]}" \
         $TARGET_FS/boot \
         $TARGET_FS/.build \
         $TARGET_FS/etc/initramfs-tools \
-        $TARGET_FS/usr/bin/qemu-* \
         $TARGET_FS/vmlinuz* \
         $TARGET_FS/initrd* \
 && {
