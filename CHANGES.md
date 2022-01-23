@@ -4,6 +4,10 @@ Changelog
 Branch 1.x
 ---------------------------
 
+### 1.2.1 ###
+
+* Changed: max overlay `tmpfs` size to `75%` of total system ram
+
 ### 1.2.0 ###
 
 * Added: `pstorage reload` command to clear filesystem cache - apply changes made in lowerdir

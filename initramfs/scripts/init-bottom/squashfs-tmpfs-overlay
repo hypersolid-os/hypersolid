@@ -5,7 +5,7 @@
 #                         SQUASHFS ROOT with tmpfs overlay                          #
 #                          and optional persistent storage                          #
 #                                                                                   #
-#        Copyright (C) 2018-2020 Andi Dittrich <https://andidittrich.com>           #
+#        Copyright (C) 2018-2022 Andi Dittrich <https://andidittrich.com>           #
 #                                                                                   #
 # ISSUES: https://github.com/hypersolid-os/hypersolid                               #
 # LICENSE: GNU General Public License 2                                             #
@@ -115,7 +115,7 @@ secure_mkdir ${MNT_SYSTEM}
 # ############################################################################
 
 # create tmpfs (used as rw overlay)
-secure_mount "tmpfs" tmpfs-live ${MNT_TMPFS}
+secure_mount "tmpfs" tmpfs-live ${MNT_TMPFS} "rw,relatime,size=75%"
 
 # create OVERLAY_WORK mount within tmpfs
 secure_mkdir ${OVERLAY_WORK}
