@@ -116,6 +116,11 @@ function hypersolid_prepare_buildenv(){
 # ---------------------------------------
 function hypersolid_copy_sources(){
 
+    # source dir exist ?
+    if [ ! -d "${1}" ]; then
+        panic "source directory [${1}] doesn't exist"
+    fi
+
     # copy target files
     # -------------------------------------------------
     log_info "adding target specific files"
@@ -224,8 +229,14 @@ function hypersolid_prepare(){
     # copy base rootfs files from extended target
     # -------------------------------------------------
     if [ ! -z "$CONF_EXTEND" ]; then
-        print_subheading "adding extended target"
-        hypersolid_copy_sources "$WORKINGDIR/$CONF_EXTEND"
+        # source dirs to array
+        IFS=' ' read -ra extendedSourceDirs <<<"$CONF_EXTEND"
+
+        # copy files
+        for EXTDIR in "${extendedSourceDirs[@]}"; do
+            print_subheading "adding extended target [${EXTDIR}]"
+            hypersolid_copy_sources "$WORKINGDIR/$EXTDIR"
+        done 
     fi
 
     # copy target rootfs files
