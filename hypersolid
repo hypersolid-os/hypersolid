@@ -13,7 +13,7 @@
 #_______________________________________________________________
 
 # https://github.com/hypersolid-os/hypersolid
-VERSION="1.3.0"
+VERSION="1.4.0"
 
 show_usage(){
     cat << EOF
@@ -70,6 +70,10 @@ DIST_DIR=$DIST_BASEDIR/$TARGET_NAME
 
 # build directory within isolated env
 BUILD_ENV=/tmp/hypersolid-env
+
+# default mirror config
+CONF_DEBIAN_MIRROR="http://deb.debian.org/debian"
+CONF_DEBIAN_SECURITY_MIRROR="http://security.debian.org/debian-security"
 
 # get function utilities
 source $BASEDIR/setup/functions
@@ -153,8 +157,14 @@ function hypersolid_copy_sources(){
 
     # custom multistrap config available ?
     if [ -f $1/multistrap.ini ]; then
-        log_info "adding custom multistrap config"
+        log_info "adding custom multistrap configfile"
         cp $1/multistrap.ini $BUILD_ENV/etc/hypersolid
+    fi
+
+    # custom multistrap config set available ?
+    if [ -d "$1/multistrap" ]; then
+        log_info "adding custom multistrap config set"
+        cp -RT $1/multistrap $BUILD_ENV/etc/hypersolid
     fi
 }
 
@@ -186,7 +196,13 @@ function hypersolid_prepare(){
     ROOT_FS=$BUILD_DIR/rootfs
     OUTPUT_DIR=$BUILD_DIR/dist
 
-    # read config
+    # read base config
+    if [ -f "$WORKINGDIR/hypersolid.conf" ]; then
+        log_info "loading hypersolid.conf"
+        source "$WORKINGDIR/hypersolid.conf"
+    fi
+
+    # read target config
     source $TARGET_DIR/config
 
     # cleanup
@@ -252,6 +268,13 @@ function hypersolid_prepare(){
     else
         touch $BUILD_ENV/etc/hypersolid/apt-proxy.conf
     fi
+
+    # multistrap source filter
+    # -------------------------------------------------
+
+    # replace multistrap source urls
+    sed -i "s#\$DEBIAN_SECURITY_MIRROR#${CONF_DEBIAN_SECURITY_MIRROR}#g" $BUILD_ENV/etc/hypersolid/*.ini
+    sed -i "s#\$DEBIAN_MIRROR#${CONF_DEBIAN_MIRROR}#g" $BUILD_ENV/etc/hypersolid/*.ini
 }
 
 # run build on current hostsystem with systemd-nspawn

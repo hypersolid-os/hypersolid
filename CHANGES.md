@@ -4,6 +4,13 @@ Changelog
 Branch 1.x
 ---------------------------
 
+### 1.4.0 ###
+
+* Added: multistrap sources/mirrors can be configured via global configuration `hypersolid.conf` to enable usage of custom mirrors without changing basic multistrap files (affects also the build system wrapper)
+* Changed: build-system updated to debian bullseye
+* Changed: multistrap `omitdebsrc=true` is set for all standard sections to avoid download of source files
+* Changed: `firmware-ralink` replaced by `firmware-misc-nonfree` in `multistrap/bullseye.ini`
+
 ### 1.3.0 ###
 
 * Added: support for derived images from multiple source targets (multiple inheritance)

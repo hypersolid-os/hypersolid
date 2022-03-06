@@ -6,6 +6,9 @@ set -e
 BASEDIR="$( cd "$( dirname "$(realpath ${BASH_SOURCE[0]})" )" && pwd )"
 WORKINGDIR="$(pwd)"
 
+# default mirror config
+CONF_DEBIAN_MIRROR="http://deb.debian.org/debian"
+
 # get function utilities
 source $BASEDIR/../setup/functions
 
@@ -26,6 +29,15 @@ BUILD_ENV="$1"
     log_info "build env already exist..skipping"
     exit 0
 }
+
+# read base config
+if [ -f "$WORKINGDIR/hypersolid.conf" ]; then
+    log_info "loading hypersolid.conf"
+    source "$WORKINGDIR/hypersolid.conf"
+fi
+
+# replace multistrap source urls
+sed -i "s#\$DEBIAN_MIRROR#${CONF_DEBIAN_MIRROR}#g" $BASEDIR/multistrap.ini
 
 # create apt config dirs
 mkdir -p $BUILD_ENV/etc/apt/trusted.gpg.d $BUILD_ENV/etc/apt/apt.conf.d
