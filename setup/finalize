@@ -58,7 +58,7 @@ fi
 # cpio image only ? remove .img
 if [ "$CONF_IMAGE_TYPE" = "cpio" ]; then
     log_info "removing plain squashfs system.img file"
-    rm $TARGET_FS $OUTPUT_DIR/system.img
+    rm $OUTPUT_DIR/system.img
 fi
 
 # run post build script hook ?
