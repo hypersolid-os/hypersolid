@@ -4,6 +4,12 @@ Changelog
 Branch 1.x
 ---------------------------
 
+### 1.5.0 ###
+
+* Added: `uuid` is automatically generated for each build and stored in `DIST_DIR/.uuid` - can be assigned within `pre-build` hook
+* Bugfix: `CONF_IMAGE_TYPE=cpio` failed because of invalid path
+* Bugfix: build environment multistrap file was altered by global mirror configuration - copy moved into env build dir
+
 ### 1.4.0 ###
 
 * Added: multistrap sources/mirrors can be configured via global configuration `hypersolid.conf` to enable usage of custom mirrors without changing basic multistrap files (affects also the build system wrapper)

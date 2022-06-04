@@ -36,8 +36,8 @@ if [ -f "$WORKINGDIR/hypersolid.conf" ]; then
     source "$WORKINGDIR/hypersolid.conf"
 fi
 
-# replace multistrap source urls
-sed -i "s#\$DEBIAN_MIRROR#${CONF_DEBIAN_MIRROR}#g" $BASEDIR/multistrap.ini
+# copy env multistrap file
+cp ${BASEDIR}/multistrap.ini ${BUILD_ENV}/env-multistrap.ini
 
 # create apt config dirs
 mkdir -p $BUILD_ENV/etc/apt/trusted.gpg.d $BUILD_ENV/etc/apt/apt.conf.d
@@ -51,12 +51,16 @@ cp -RT $BASEDIR/../rootfs/etc/apt/trusted.gpg.d $BUILD_ENV/etc/apt/trusted.gpg.d
 }
 
 print_subheading "starting multistrap.."
+log_info "using mirror ${CONF_DEBIAN_MIRROR}"
+
+# replace multistrap source urls
+sed -i "s#\$DEBIAN_MIRROR#${CONF_DEBIAN_MIRROR}#g" ${BUILD_ENV}/env-multistrap.ini
 
 # run multistrap as current user (uid/gid not set properly but not required)
 /usr/sbin/multistrap \
     --arch "amd64" \
-    --dir $BUILD_ENV \
-    --file $BASEDIR/multistrap.ini && {
+    --dir ${BUILD_ENV} \
+    --file ${BUILD_ENV}/env-multistrap.ini && {
         log_success "multistrap finished"
     } || {
         log_error "multistrap failed"
