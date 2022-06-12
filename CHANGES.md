@@ -4,6 +4,12 @@ Changelog
 Branch 1.x
 ---------------------------
 
+### 1.6.0 ###
+
+* Added: `systemd-timesyncd` to `systemd` section
+* Added: `rfkill` to `wireless` section
+* Changed: removed `dhcpcd5` package in default `network` section (systemd-networkd is preferred)
+
 ### 1.5.0 ###
 
 * Added: `uuid` is automatically generated for each build and stored in `DIST_DIR/.uuid` - can be assigned within `pre-build` hook
