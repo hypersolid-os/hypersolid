@@ -27,6 +27,11 @@ ssh-keygen -q -N "" -t rsa -b 4096 -f ${PSTORAGE_MOUNT}/etc/ssh/ssh_host_rsa_key
 echo "generating ed25519 ssh host key.."
 ssh-keygen -q -N "" -t ed25519 -f ${PSTORAGE_MOUNT}/etc/ssh/ssh_host_ed25519_key
 
+# persist machine-id
+# ------------------------------
+echo "storing machine-id"
+cp /etc/machine-id ${PSTORAGE_MOUNT}/etc/machine-id
+
 # disable service by masking it
 # ------------------------------
 echo "disable hypersolid firstboot service"

@@ -5,7 +5,7 @@ Description=hypersolid firstboot system initialization
 Before=sshd.service
 
 [Service]
-ExecStart=/usr/sbin/hypersolid-firstboot
+ExecStart=/usr/lib/hypersolid/firstboot
 
 # Just Execute the shell script
 Type=oneshot

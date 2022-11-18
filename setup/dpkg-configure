@@ -44,6 +44,9 @@ systemctl enable hypersolid-firstboot.service
 # remove ssh keys
 rm /etc/ssh/ssh_host_*
 
+# remove machine-id
+rm /etc/machine-id
+
 # run console setup
 setupcon --save-only
 
