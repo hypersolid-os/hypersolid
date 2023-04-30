@@ -28,7 +28,8 @@ Devices / Use Cases
 
 Create highly customizable and fully immutable images for:
 
-* Servers
+* Bare metal servers
+* Cloud servers
 * Workstations
 * Fat-clients / thin-clients
 * IoT devices
@@ -38,8 +39,11 @@ Create highly customizable and fully immutable images for:
 Target platforms
 --------------------
 
-* Generic x86_64 baremetal systems
-* Generic x86_64 virtualized maschines (kvm/quemu)
+* Generic baremetal systems - multiarch
+* Generic virtualized maschines (kvm/quemu) - multiarch
+
+**embedded**
+
 * [Raspberry PI Zero W](docs/raspberry-pi.md)
 * [Raspberry PI 3+4](docs/raspberry-pi.md)
 

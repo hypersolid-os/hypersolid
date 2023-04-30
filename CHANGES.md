@@ -1,6 +1,13 @@
 Changelog
 ============================
 
+Branch 2.x
+---------------------------
+
+### 2.0.0 ###
+
+* Changed: buildarch is appended to all output files (e.g. `kernel-<arch>.img`)
+
 Branch 1.x
 ---------------------------
 

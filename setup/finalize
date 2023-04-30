@@ -18,11 +18,11 @@ source $ROOT_FS/.build/config
 scriptd_exec "post-configure" "$TARGET_FS/.build/scripts"
 
 # move initramfs
-mv $TARGET_FS/boot/initramfs.img $OUTPUT_DIR/initramfs.img
+mv $TARGET_FS/boot/initramfs.img $OUTPUT_DIR/initramfs-${CONF_ARCH}.img
 
 # move kernel (if exists)
 if [ -f $TARGET_FS/vmlinuz ]; then
-    cp $TARGET_FS/vmlinuz $OUTPUT_DIR/kernel.img
+    cp $TARGET_FS/vmlinuz $OUTPUT_DIR/kernel-${CONF_ARCH}.img
 fi
 
 # squasfs compression algo set ?
@@ -32,7 +32,7 @@ fi
 
 # create squashfs
 log_info "creating squashfs system image"
-mksquashfs $TARGET_FS $OUTPUT_DIR/system.img "${CONF_SQUASHFS_ARGS[@]}" \
+mksquashfs $TARGET_FS $OUTPUT_DIR/system-${CONF_ARCH}.img "${CONF_SQUASHFS_ARGS[@]}" \
     -e \
         $TARGET_FS/boot \
         $TARGET_FS/.build \
@@ -40,7 +40,7 @@ mksquashfs $TARGET_FS $OUTPUT_DIR/system.img "${CONF_SQUASHFS_ARGS[@]}" \
         $TARGET_FS/vmlinuz* \
         $TARGET_FS/initrd* \
 && {
-    log_success "squashfs file created in $TARGET_FS $OUTPUT_DIR/system.img"
+    log_success "squashfs file created in $TARGET_FS $OUTPUT_DIR/system-${CONF_ARCH}.img"
 } || {
     panic "failed to create squashfs image"
 }
@@ -48,8 +48,8 @@ mksquashfs $TARGET_FS $OUTPUT_DIR/system.img "${CONF_SQUASHFS_ARGS[@]}" \
 # wrap system.img into CPIO
 if [ "$CONF_IMAGE_TYPE" != "img" ]; then
     log_info "creating cpio wrapped squashfs image"
-    echo "system.img" | cpio --quiet -H newc -o --directory=$OUTPUT_DIR > $OUTPUT_DIR/system.cpio && {
-        log_success "cpio wrapped squashfs file created in $TARGET_FS $OUTPUT_DIR/system.cpio"
+    echo "system-${CONF_ARCH}.img" | cpio --quiet -H newc -o --directory=$OUTPUT_DIR > $OUTPUT_DIR/system-${CONF_ARCH}.cpio && {
+        log_success "cpio wrapped squashfs file created in $TARGET_FS $OUTPUT_DIR/system-${CONF_ARCH}.cpio"
     } || {
         panic "failed to create cpio wrapped image"
     }
@@ -57,8 +57,8 @@ fi
 
 # cpio image only ? remove .img
 if [ "$CONF_IMAGE_TYPE" = "cpio" ]; then
-    log_info "removing plain squashfs system.img file"
-    rm $OUTPUT_DIR/system.img
+    log_info "removing plain squashfs system-${CONF_ARCH}.img file"
+    rm $OUTPUT_DIR/system-${CONF_ARCH}.img
 fi
 
 # run post build script hook ?
