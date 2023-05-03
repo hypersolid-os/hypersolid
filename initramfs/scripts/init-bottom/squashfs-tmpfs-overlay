@@ -5,7 +5,7 @@
 #                         SQUASHFS ROOT with tmpfs overlay                          #
 #                          and optional persistent storage                          #
 #                                                                                   #
-#        Copyright (C) 2018-2022 Andi Dittrich <https://andidittrich.com>           #
+#        Copyright (C) 2018-2023 Andi Dittrich <https://andidittrich.com>           #
 #                                                                                   #
 # ISSUES: https://github.com/hypersolid-os/hypersolid                               #
 # LICENSE: GNU General Public License 2                                             #
@@ -40,9 +40,6 @@ log_begin_msg "[hypersolid] initializing merged root-file-system with tmpfs over
 # ############################################################################
 # CONFIG
 # ############################################################################
-
-# filename of the squashfs image file on root partition
-SQUAHSFS_IMG_FILE=system.img
 
 # mount points
 MNT_SYSTEM=/mnt/system
@@ -146,8 +143,35 @@ secure_mkdir ${OVERLAY_UPPER}/boot
 # Stage 4 - initialize squashfs
 # ############################################################################
 
+# filename of the squashfs image file on root partition
+SQUAHSFS_IMG_LEGACY_FILENAME=system.img
+
+# arch depended filenames as of hypersolid v3
+case $(arch) in
+  x86_64|x86-64)
+    SQUAHSFS_IMG_FILENAME="system-amd64.img"
+    ;;
+
+  arm64)
+    SQUAHSFS_IMG_FILENAME="system-arm64.img"
+    ;;
+
+  *)
+    SQUAHSFS_IMG_FILENAME="system.img"
+    ;;
+esac
+
 # system image mounted into initramfs ?
-if [ -f /${SQUAHSFS_IMG_FILE} ]; then
+if [ -f /${SQUAHSFS_IMG_FILENAME} ] || [ -f /${SQUAHSFS_IMG_LEGACY_FILENAME} ]; then
+
+    # architecture depended or legacy filename ?
+    [ -f /${SQUAHSFS_IMG_FILENAME} ] && {
+        SQUAHSFS_IMG_FILE=${SQUAHSFS_IMG_FILENAME}
+    } || {
+        SQUAHSFS_IMG_FILE=${SQUAHSFS_IMG_LEGACY_FILENAME}
+    }
+
+    # move file into targetfs mountpoint
     mv /${SQUAHSFS_IMG_FILE} ${MNT_TMPFS}/${SQUAHSFS_IMG_FILE}
 
     # enforce file permissions
@@ -168,10 +192,18 @@ else
     # move system partition
     secure_mv_mount ${rootmnt} ${MNT_SYSTEM}
 
-    # image file provided via system partition ?
-    [ -f ${MNT_SYSTEM}/${SQUAHSFS_IMG_FILE} ] || {
-        panic "[hypersolid] system image not found in ${MNT_SYSTEM}/${SQUAHSFS_IMG_FILE}"
-    }
+    # architecture depended filename ?
+    if [ -f ${MNT_SYSTEM}/${SQUAHSFS_IMG_FILENAME} ]; then
+        SQUAHSFS_IMG_FILE=${SQUAHSFS_IMG_FILENAME}
+
+    # legacy filename
+    elif [ -f ${MNT_SYSTEM}/${SQUAHSFS_IMG_FILENAME} ]; then
+        SQUAHSFS_IMG_FILE=${SQUAHSFS_IMG_LEGACY_FILENAME}
+
+    # no system file found
+    else
+        panic "[hypersolid] system image not found in ${MNT_SYSTEM}"
+    fi
 
     # initialize loopback
     losetup /dev/loop0 ${MNT_SYSTEM}/${SQUAHSFS_IMG_FILE} || {
