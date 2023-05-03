@@ -148,11 +148,11 @@ SQUAHSFS_IMG_LEGACY_FILENAME=system.img
 
 # arch depended filenames as of hypersolid v3
 case $(arch) in
-  x86_64|x86-64)
+  x86_64|x86-64|x64)
     SQUAHSFS_IMG_FILENAME="system-amd64.img"
     ;;
 
-  arm64)
+  aarch64|arm64)
     SQUAHSFS_IMG_FILENAME="system-arm64.img"
     ;;
 
