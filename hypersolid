@@ -65,7 +65,7 @@ TARGET_NAME="${2%/}"
 TARGET_DIR=$WORKINGDIR/$TARGET_NAME
 
 # assign dist dir to copy files
-DIST_BASEDIR=$WORKINGDIR/dist
+DIST_BASEDIR=$WORKINGDIR/.dist
 DIST_DIR=$DIST_BASEDIR/$TARGET_NAME
 
 # build directory within isolated env
@@ -176,8 +176,10 @@ function hypersolid_prepare(){
 
     # Check directory
     if [ -d "$DIST_DIR" ]; then
-        log_info "dist directory [$DIST_DIR] does exists..cleanup"
-        rm -rf $DIST_DIR/*
+        log_info "dist directory [$DIST_DIR] exists..removing old artifacts"
+        rm ${DIST_DIR}/kernel-${CONF_ARCH}* || /bin/true
+        rm ${DIST_DIR}/initramfs-${CONF_ARCH}* || /bin/true
+        rm ${DIST_DIR}/system-${CONF_ARCH}* || /bin/true
     else
         log_info "dist directory [$DIST_DIR] does not exists..creating"
         mkdir $DIST_DIR
@@ -383,14 +385,29 @@ function hypersolid_clean_dist(){
 
 # load target uuid 
 # ---------------------------------------
-function hypersolid_load_uuid(){
+function hypersolid_load_params(){
 
     # uuid exists ?
-    if [ -f "${DIST_DIR}/.uuid" ]; then
-        export HYPERSOLID_UUID=$(cat ${DIST_DIR}/.uuid)
-    else
+    if [ ! -f "${DIST_DIR}/.uuid" ]; then
         panic "image uuid cannot be loaded"
     fi
+
+    # load uuid
+    export HYPERSOLID_UUID=$(cat ${DIST_DIR}/.uuid)
+    
+    # read base config
+    if [ -f "$WORKINGDIR/hypersolid.conf" ]; then
+        log_info "loading hypersolid.conf"
+        source "$WORKINGDIR/hypersolid.conf"
+    fi
+
+    # Check config file
+    if [ ! -f "$TARGET_DIR/config" ]; then
+        panic "target config [$TARGET_DIR] does not exists!"
+    fi
+
+    # read target config
+    source $TARGET_DIR/config
 }
 
 # Command Dispatching
@@ -407,7 +424,7 @@ case "$1" in
     deploy)
         hypersolid_intro
         hypersolid_precheck
-        hypersolid_load_uuid
+        hypersolid_load_params
         hook_exec "deploy"
         exit 0
     ;;
@@ -424,7 +441,6 @@ case "$1" in
         hypersolid_intro
         hypersolid_precheck
         hypersolid_nspawnbuild
-        hypersolid_load_uuid
         hook_exec "codesigning"
         hook_exec "deploy"
         exit 0
@@ -433,7 +449,7 @@ case "$1" in
     sign)
         hypersolid_intro
         hypersolid_precheck
-        hypersolid_load_uuid
+        hypersolid_load_params
         hook_exec "codesigning"
         exit 0
     ;;

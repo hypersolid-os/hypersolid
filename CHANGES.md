@@ -6,7 +6,10 @@ Branch 2.x
 
 ### 2.0.0 ###
 
-* Changed: buildarch is appended to all output files (e.g. `kernel-<arch>.img`)
+* Added: multiarch build support (build multiple archs for single target)
+* Changed: buildarch is appended to all output files (e.g. `kernel-<arch>.img`, `.uuid-arch`). this also affects the initramfs squashfs mount. legacy filename `system.img` is also still supported as fallback
+* Changed: dist (output) dir renamed to `.dist/`
+* Changed: `hypersolid.conf` and target `config` loaded for detached `sign`/`deploy` commands
 
 Branch 1.x
 ---------------------------

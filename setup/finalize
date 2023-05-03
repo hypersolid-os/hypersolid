@@ -5,14 +5,13 @@ set -e
 
 # expose temporary paths
 export TARGET_FS=/build/target
-export ROOT_FS=/build/rootfs
 export OUTPUT_DIR=/build/dist
 
 # get function utilities
-source $ROOT_FS/.build/functions
+source $TARGET_FS/.build/functions
 
 # load config
-source $ROOT_FS/.build/config
+source $TARGET_FS/.build/config
 
 # run post configure script hook ?
 scriptd_exec "post-configure" "$TARGET_FS/.build/scripts"
