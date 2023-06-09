@@ -14,6 +14,9 @@ source $ROOT_FS/.build/functions
 # load config
 source $ROOT_FS/.build/config
 
+# buildarch set ?
+[ -z "$_BUILDARCH" ] && panic "ERROR: buildarch not set"
+
 # copy static gpg keys
 # -------------------------------------------------
 mkdir -p $TARGET_FS/etc/apt/trusted.gpg.d $TARGET_FS/etc/apt/apt.conf.d
@@ -27,7 +30,7 @@ log_info "starting multistrap"
 # run multistrap - $ROOT_FS will be overwritten!
 # -------------------------------------------------
 /usr/sbin/multistrap \
-    --arch $CONF_ARCH \
+    --arch $_BUILDARCH \
     --dir $TARGET_FS \
     --file /etc/hypersolid/multistrap.ini && {
         log_info "multistrap finished"
@@ -42,7 +45,7 @@ cp -RT $ROOT_FS $TARGET_FS
 # busybox libmusl
 # required to enabled full busybox support within initramfs (e.g. DNS,losetup)
 BUSYBOX_BIN=
-case "$CONF_ARCH" in
+case "$_BUILDARCH" in
     armel)
         BUSYBOX_BIN="busybox-armv5l"
         ;;
@@ -67,8 +70,8 @@ cp /usr/share/hypersolid/busybox/${BUSYBOX_BIN} $TARGET_FS/bin/busybox && {
 scriptd_exec "post-multistrap" "$TARGET_FS/.build/scripts"
 
 # arm ? use emulation
-if [[ "$CONF_ARCH" =~ ^(armel|armhf|arm64)$ ]]; then
-    log_warning "emulating target arch $CONF_ARCH"
+if [[ "$_BUILDARCH" =~ ^(armel|armhf|arm64)$ ]]; then
+    log_warning "emulating target arch $_BUILDARCH"
 
     # copy qemu binaries
     cp /usr/bin/qemu-arm-static $TARGET_FS/usr/bin/

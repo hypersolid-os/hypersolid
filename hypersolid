@@ -13,7 +13,7 @@
 #_______________________________________________________________
 
 # https://github.com/hypersolid-os/hypersolid
-VERSION="2.0.0"
+VERSION="2.1.0"
 
 show_usage(){
     cat << EOF
@@ -170,20 +170,9 @@ function hypersolid_copy_sources(){
 
 # prepare build
 # ---------------------------------------
-function hypersolid_prepare(){
+function hypersolid_build(){
 
     print_subheading "building $TARGET_NAME"
-
-    # Check directory
-    if [ -d "$DIST_DIR" ]; then
-        log_info "dist directory [$DIST_DIR] exists..removing old artifacts"
-        rm ${DIST_DIR}/kernel-${CONF_ARCH}* || /bin/true
-        rm ${DIST_DIR}/initramfs-${CONF_ARCH}* || /bin/true
-        rm ${DIST_DIR}/system-${CONF_ARCH}* || /bin/true
-    else
-        log_info "dist directory [$DIST_DIR] does not exists..creating"
-        mkdir $DIST_DIR
-    fi
 
     # Check config file
     if [ ! -f "$TARGET_DIR/config" ]; then
@@ -207,6 +196,12 @@ function hypersolid_prepare(){
     # read target config
     source $TARGET_DIR/config
 
+    # Check directory
+    if [ ! -d "$DIST_DIR" ]; then
+        log_info "dist directory [$DIST_DIR] does not exists..creating"
+        mkdir $DIST_DIR
+    fi
+
     # cleanup
     log_info "cleaning up build environment"
 
@@ -221,11 +216,6 @@ function hypersolid_prepare(){
 
     # create temp dir structure
     mkdir -p $BUILD_DIR/{dist,rootfs,target}
-
-    # copy multistrap config
-    # -------------------------------------------------
-    log_info "adding multistrap base configuration"
-    cp -RT $BASEDIR/multistrap $BUILD_ENV/etc/hypersolid
 
     # copy initramfs config
     # -------------------------------------------------
@@ -271,24 +261,9 @@ function hypersolid_prepare(){
         touch $BUILD_ENV/etc/hypersolid/apt-proxy.conf
     fi
 
-    # multistrap source filter
-    # -------------------------------------------------
-
-    # replace multistrap source urls
-    sed -i "s#\$DEBIAN_SECURITY_MIRROR#${CONF_DEBIAN_SECURITY_MIRROR}#g" $BUILD_ENV/etc/hypersolid/*.ini
-    sed -i "s#\$DEBIAN_MIRROR#${CONF_DEBIAN_MIRROR}#g" $BUILD_ENV/etc/hypersolid/*.ini
-}
-
-# run build on current hostsystem with systemd-nspawn
-# ---------------------------------------
-function hypersolid_nspawnbuild(){
-    # prepare env
-    hypersolid_prepare
-
     # call hook
     hook_exec "pre-build"
-
-    log_info "running nspawn based build of $TARGET_NAME"
+    log_info "running build of $TARGET_NAME"
 
     # image UUID externally set ?
     # UUID provided ?
@@ -300,6 +275,64 @@ function hypersolid_nspawnbuild(){
 
     # store uuid
     echo ${HYPERSOLID_UUID} > ${DIST_DIR}/.uuid
+
+    # multiarch build: buildenv + rootfs has been created
+    # run build for each arch
+    # -------------------------------------------------
+    IFS=' ' read -ra TARGET_ARCHS <<<"$CONF_ARCH"
+
+    # run build for each architecture
+    for BUILDARCH in "${TARGET_ARCHS[@]}"; do
+
+        print_heading "building $TARGET_NAME on $BUILDARCH"
+
+        # cleanup
+        log_info "cleaning up build environment"
+
+        [ -d "$BUILD_DIR" ] && {
+            sudo systemd-nspawn \
+                --quiet \
+                --register=false \
+                --private-users \
+                --directory /tmp/hypersolid-env \
+                rm -rf /build/target
+        }
+
+        # create temp dir structure
+        mkdir -p $BUILD_DIR/{dist,rootfs,target}
+
+        # set buildarch
+        echo -e "\nexport _BUILDARCH=${BUILDARCH}" >> $ROOT_FS/.build/config
+
+        # multistrap source filter
+        # -------------------------------------------------
+
+        # copy multistrap config
+        log_info "adding multistrap base configuration"
+        cp -RT $BASEDIR/multistrap $BUILD_ENV/etc/hypersolid
+        
+        # replace multistrap source urls
+        sed -i "s#\$DEBIAN_SECURITY_MIRROR#${CONF_DEBIAN_SECURITY_MIRROR}#g" $BUILD_ENV/etc/hypersolid/*.ini
+        sed -i "s#\$DEBIAN_MIRROR#${CONF_DEBIAN_MIRROR}#g" $BUILD_ENV/etc/hypersolid/*.ini
+
+        # replace arch
+        sed -i "s#\$BUILDARCH#${BUILDARCH}#g" $BUILD_ENV/etc/hypersolid/*.ini
+
+        # cleanup artifacts
+        log_info "removing old artifacts"
+        rm ${DIST_DIR}/kernel-${BUILDARCH}* || /bin/true
+        rm ${DIST_DIR}/initramfs-${BUILDARCH}* || /bin/true
+        rm ${DIST_DIR}/system-${BUILDARCH}* || /bin/true
+
+        # run arch specific build
+        hypersolid_nspawnbuild
+
+    done
+}
+
+# run build on current hostsystem with systemd-nspawn
+# ---------------------------------------
+function hypersolid_nspawnbuild(){
 
     # stage 1 - run multistrap within isolated env
     print_subheading "[stage1] download + prepare packages"
@@ -417,7 +450,7 @@ case "$1" in
     build)
         hypersolid_intro
         hypersolid_precheck
-        hypersolid_nspawnbuild
+        hypersolid_build
         exit 0
     ;;
 
@@ -432,7 +465,7 @@ case "$1" in
     build-deploy)
         hypersolid_intro
         hypersolid_precheck
-        hypersolid_nspawnbuild
+        hypersolid_build
         hook_exec "deploy"
         exit 0
     ;;
@@ -440,7 +473,7 @@ case "$1" in
     update)
         hypersolid_intro
         hypersolid_precheck
-        hypersolid_nspawnbuild
+        hypersolid_build
         hook_exec "codesigning"
         hook_exec "deploy"
         exit 0
