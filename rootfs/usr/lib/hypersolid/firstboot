@@ -10,9 +10,17 @@ PSTORAGE_MOUNT="/mnt/storage"
 # persistent storage mounted ?
 if mountpoint ${PSTORAGE_MOUNT} > /dev/null; then
     echo "persistent storage available"
+
+# just create ssh keys
 else
-    echo "no persistent storage available..exiting"
-    exit 1
+    echo "no persistent storage available..just generating ssh keys"
+    echo "generating rsa ssh host key.."
+    ssh-keygen -q -N "" -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key
+
+    echo "generating ed25519 ssh host key.."
+    ssh-keygen -q -N "" -t ed25519 -f /etc/ssh/ssh_host_ed25519_key
+
+    exit 2
 fi
 
 # set storage writeable 
