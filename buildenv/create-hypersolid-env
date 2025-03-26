@@ -9,6 +9,9 @@ WORKINGDIR="$(pwd)"
 # default mirror config
 CONF_DEBIAN_MIRROR="http://deb.debian.org/debian"
 
+# base system dependencies
+BUILDENV_DEPS="base-files,base-passwd,coreutils,perl,bash,dash,sed,grep,mawk,libc-bin,dpkg,diffutils,findutils,util-linux,mmdebstrap,multistrap,squashfs-tools,cpio,initramfs-tools,busybox-static,lzop,mount,gpg,gpgv,apt,apt-transport-https,debian-archive-keyring,wget,curl,gzip"
+
 # get function utilities
 source $BASEDIR/../setup/functions
 
@@ -36,9 +39,6 @@ if [ -f "$WORKINGDIR/hypersolid.conf" ]; then
     source "$WORKINGDIR/hypersolid.conf"
 fi
 
-# copy env multistrap file
-cp ${BASEDIR}/multistrap.ini ${BUILD_ENV}/env-multistrap.ini
-
 # create apt config dirs
 mkdir -p $BUILD_ENV/etc/apt/trusted.gpg.d $BUILD_ENV/etc/apt/apt.conf.d
 
@@ -50,20 +50,22 @@ cp -RT $BASEDIR/../rootfs/etc/apt/trusted.gpg.d $BUILD_ENV/etc/apt/trusted.gpg.d
     cp $WORKINGDIR/../apt-proxy.conf $BUILD_ENV/etc/apt/apt.conf.d/01-proxy.conf
 }
 
-print_subheading "starting multistrap.."
+print_subheading "starting mmdebstrap.."
 log_info "using mirror ${CONF_DEBIAN_MIRROR}"
 
-# replace multistrap source urls
-sed -i "s#\$DEBIAN_MIRROR#${CONF_DEBIAN_MIRROR}#g" ${BUILD_ENV}/env-multistrap.ini
-
-# run multistrap as current user (uid/gid not set properly but not required)
-/usr/sbin/multistrap \
-    --arch "amd64" \
-    --dir ${BUILD_ENV} \
-    --file ${BUILD_ENV}/env-multistrap.ini && {
-        log_success "multistrap finished"
+# run mmdebstrap as current user (uid/gid not set properly but not required) to create isolated buildenv
+/usr/bin/mmdebstrap \
+    --verbose \
+    --skip=check/empty \
+    --variant=extract \
+    --mode=chrootless \
+    --components=main \
+    --include=${BUILDENV_DEPS} \
+    bookworm ${BUILD_ENV} ${CONF_DEBIAN_MIRROR} \
+    && {
+        log_success "mmdebstrap finished"
     } || {
-        log_error "multistrap failed"
+        log_error "mmdebstrap failed"
         exit 1
     }
 
@@ -91,5 +93,5 @@ sudo systemd-nspawn \
     } || {
         log_error "package configuration finished"
         exit 1
-    }
+   }
 

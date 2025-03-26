@@ -6,4 +6,6 @@ export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true
 export LC_ALL=C LANGUAGE=C LANG=C
 
 # base-passwd throws an error caused by dependency order - just ignore it
-dpkg --configure -a || exit 0
+dpkg --configure -a
+apt-get update
+apt-get install --no-install-recommends -y ca-certificates

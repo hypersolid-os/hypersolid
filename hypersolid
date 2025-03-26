@@ -18,7 +18,7 @@ VERSION="2.2.0"
 show_usage(){
     cat << EOF
 Usage: hypersolid <command> [args...]
-build a custom debian image with multistrap into a single squasfs-file with tmpfs overlay
+build a custom debian image with mmdebstrap into a single squasfs-file with tmpfs overlay
 
 Options:
     -h,--help                         Displays this help
@@ -70,6 +70,7 @@ DIST_DIR=$DIST_BASEDIR/$TARGET_NAME
 
 # build directory within isolated env
 BUILD_ENV=/tmp/hypersolid-env
+BUILD_ENV=/mnt/data/tmp/hypersolid-env
 
 # default mirror config
 CONF_DEBIAN_MIRROR="http://deb.debian.org/debian"
@@ -210,7 +211,7 @@ function hypersolid_build(){
             --quiet \
             --register=false \
             --private-users \
-            --directory /tmp/hypersolid-env \
+            --directory ${BUILD_ENV} \
             rm -rf /build
     }
 
@@ -226,7 +227,6 @@ function hypersolid_build(){
     # copy setup script
     # -------------------------------------------------
     log_info "adding setup scripts"
-    mkdir -p $ROOT_FS/.build
     cp -RT $BASEDIR/setup $ROOT_FS/.build
 
     # copy generic rootfs files
@@ -294,7 +294,7 @@ function hypersolid_build(){
                 --quiet \
                 --register=false \
                 --private-users \
-                --directory /tmp/hypersolid-env \
+                --directory ${BUILD_ENV} \
                 rm -rf /build/target
         }
 
@@ -310,7 +310,7 @@ function hypersolid_build(){
         # copy multistrap config
         log_info "adding multistrap base configuration"
         cp -RT $BASEDIR/multistrap $BUILD_ENV/etc/hypersolid
-        
+
         # replace multistrap source urls
         sed -i "s#\$DEBIAN_SECURITY_MIRROR#${CONF_DEBIAN_SECURITY_MIRROR}#g" $BUILD_ENV/etc/hypersolid/*.ini
         sed -i "s#\$DEBIAN_MIRROR#${CONF_DEBIAN_MIRROR}#g" $BUILD_ENV/etc/hypersolid/*.ini
@@ -339,7 +339,7 @@ function hypersolid_nspawnbuild(){
     sudo systemd-nspawn \
         --register=false \
         --private-users \
-        --directory /tmp/hypersolid-env \
+        --directory ${BUILD_ENV} \
         -E HYPERSOLID_UUID=$HYPERSOLID_UUID \
         -E HYPERSOLID_NAME=$TARGET_NAME \
         -E HYPERSOLID_ROOTPW=$HYPERSOLID_ROOTPW \
@@ -348,11 +348,10 @@ function hypersolid_nspawnbuild(){
     # stage 2 - configure packages+system in final rootfs
     print_subheading "[stage2] chroot into rootfs to execute postinstall actions"
     sudo systemd-nspawn \
-        --resolv-conf=off \
-        --timezone=off \
         --register=false \
         --private-users \
-        --directory /tmp/hypersolid-env/build/target \
+        --timezone=off \
+        --directory ${BUILD_ENV}/build/target \
         -E HYPERSOLID_UUID=$HYPERSOLID_UUID \
         -E HYPERSOLID_NAME=$TARGET_NAME \
         -E HYPERSOLID_ROOTPW=$HYPERSOLID_ROOTPW \
@@ -363,7 +362,7 @@ function hypersolid_nspawnbuild(){
     sudo systemd-nspawn \
         --register=false \
         --private-users \
-        --directory /tmp/hypersolid-env \
+        --directory ${BUILD_ENV} \
         -E HYPERSOLID_UUID=$HYPERSOLID_UUID \
         -E HYPERSOLID_NAME=$TARGET_NAME \
         -E HYPERSOLID_ROOTPW=$HYPERSOLID_ROOTPW \
@@ -387,7 +386,7 @@ function hypersolid_nspawnbuild(){
 function hypersolid_attach(){
 
     # env active ?
-    [ ! -d "/tmp/hypersolid-env/build/target" ] && {
+    [ ! -d "${BUILD_ENV}/build/target" ] && {
         log_error "hypersolid target environment not exist!"
         exit 1
     }
@@ -397,7 +396,7 @@ function hypersolid_attach(){
     sudo systemd-nspawn \
         --register=false \
         --private-users \
-        --directory /tmp/hypersolid-env/build/target \
+        --directory ${BUILD_ENV}/build/target \
         /bin/bash
 }
 
