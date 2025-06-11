@@ -4,6 +4,10 @@ Changelog
 Branch 2.x
 ---------------------------
 
+### 2.2.1 ###
+
+* Bugfix: qemu-arm-static binaries missing within mmdebstrap
+
 ### 2.2.0 ###
 
 * Changed: build-env is created by [mmdebstrap](https://manpages.debian.org/testing/mmdebstrap/mmdebstrap.1.en.html)

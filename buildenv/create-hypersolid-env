@@ -10,7 +10,7 @@ WORKINGDIR="$(pwd)"
 CONF_DEBIAN_MIRROR="http://deb.debian.org/debian"
 
 # base system dependencies
-BUILDENV_DEPS="base-files,base-passwd,coreutils,perl,bash,dash,sed,grep,mawk,libc-bin,dpkg,diffutils,findutils,util-linux,mmdebstrap,multistrap,squashfs-tools,cpio,initramfs-tools,busybox-static,lzop,mount,gpg,gpgv,apt,apt-transport-https,debian-archive-keyring,wget,curl,gzip"
+BUILDENV_DEPS="base-files,base-passwd,coreutils,perl,bash,dash,sed,grep,mawk,libc-bin,dpkg,diffutils,findutils,util-linux,mmdebstrap,multistrap,squashfs-tools,cpio,qemu-user-static,initramfs-tools,busybox-static,lzop,mount,gpg,gpgv,apt,apt-transport-https,debian-archive-keyring,wget,curl,gzip"
 
 # get function utilities
 source $BASEDIR/../setup/functions

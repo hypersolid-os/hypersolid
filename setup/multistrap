@@ -74,7 +74,8 @@ if [[ "$_BUILDARCH" =~ ^(armel|armhf|arm64)$ ]]; then
     log_warning "emulating target arch $_BUILDARCH"
 
     # copy qemu binaries
-    cp /usr/bin/qemu-arm-static $TARGET_FS/usr/bin/
+    cp /usr/bin/qemu-arm* $TARGET_FS/usr/bin/
+    cp /usr/bin/qemu-aarch64* $TARGET_FS/usr/bin/
 fi
 
 # include microcode ?
