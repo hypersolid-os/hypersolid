@@ -4,6 +4,10 @@ Changelog
 Branch 2.x
 ---------------------------
 
+### 2.2.2 ###
+
+* Bugfix: workspace specific `hypersolid.conf` were no able to override buildenv paths (loaded after buildenv build)
+
 ### 2.2.1 ###
 
 * Bugfix: qemu-arm-static binaries missing within mmdebstrap
