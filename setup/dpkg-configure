@@ -13,12 +13,21 @@ source /.build/functions
 # load config
 source /.build/config
 
+# fix awk - alternatives my not configured due to missing dep link
+ln -s /usr/bin/gawk /usr/bin/awk
+
 # run pre configure script hook ?
 scriptd_exec "pre-chroot" "/.build/scripts"
 
 # configure packages
 log_info "configuring packages.."
 dpkg --configure -a && log_success "packages configured"
+
+# check for configuration errors
+DPKG_PKG_FAILURES=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 != "installed" {print $4}')
+[ ! -z "${DPKG_PKG_FAILURES}" ] && {
+    panic "DPKG error during package installation/configuration"
+}
 
 # cleanup apt config
 if [ ! "$CONF_APT" == "keep" ]; then

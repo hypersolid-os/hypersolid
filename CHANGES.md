@@ -4,6 +4,11 @@ Changelog
 Branch 2.x
 ---------------------------
 
+### 2.3.0 ###
+
+* Changed: build process will fail on any `dpkg configure` packages errors (status!=installed)
+* Bugfix: `awk` may be unavailable during `dpkg configure` because of missing package deps. set symlink to `/usr/bin/gawk`
+
 ### 2.2.2 ###
 
 * Bugfix: workspace specific `hypersolid.conf` were no able to override buildenv paths (loaded after buildenv build)
