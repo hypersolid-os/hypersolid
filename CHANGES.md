@@ -7,7 +7,7 @@ Branch 2.x
 ### 2.3.0 ###
 
 * Changed: build process will fail on any `dpkg configure` packages errors (status!=installed)
-* Bugfix: `awk` may be unavailable during `dpkg configure` because of missing package deps. set symlink to `/usr/bin/gawk`
+* Bugfix: `awk` may be unavailable during `dpkg configure` because of missing package deps. set symlink to `/usr/bin/mawk`
 
 ### 2.2.2 ###
 

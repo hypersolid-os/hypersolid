@@ -14,7 +14,7 @@ source /.build/functions
 source /.build/config
 
 # fix awk - alternatives my not configured due to missing dep link
-ln -s /usr/bin/gawk /usr/bin/awk
+ln -s /usr/bin/mawk /usr/bin/awk
 
 # run pre configure script hook ?
 scriptd_exec "pre-chroot" "/.build/scripts"
