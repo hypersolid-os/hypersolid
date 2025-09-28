@@ -16,8 +16,10 @@ source $TARGET_FS/.build/config
 # run post configure script hook ?
 scriptd_exec "post-configure" "$TARGET_FS/.build/scripts"
 
-# move initramfs
-mv $TARGET_FS/boot/initramfs.img $OUTPUT_DIR/initramfs-${_BUILDARCH}.img
+# move initramfs (if exists)
+if [ -f $TARGET_FS/boot/initramfs.img ]; then
+    mv $TARGET_FS/boot/initramfs.img $OUTPUT_DIR/initramfs-${_BUILDARCH}.img
+fi
 
 # move kernel (if exists)
 if [ -f $TARGET_FS/vmlinuz ]; then

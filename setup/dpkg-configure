@@ -29,6 +29,10 @@ DPKG_PKG_FAILURES=$(dpkg-query -f '${status} ${package}\n' -W | awk '$3 != "inst
     panic "DPKG error during package installation/configuration"
 }
 
+# run target apt setup
+#log_info "installing target packages.."
+#/.build/apt.sh
+
 # cleanup apt config
 if [ ! "$CONF_APT" == "keep" ]; then
     log_info "removing target apt config"
@@ -62,12 +66,16 @@ setupcon --save-only
 # get last recent kernel version based on lib/modules
 ls -1 /usr/lib/modules | sort -r | head -n1 > /etc/kernel_version
 
-# print info
-log_success "kernel version: $(cat /etc/kernel_version)"
+if [ ! -z "$(cat /etc/kernel_version)" ]; then
+    # print info
+    log_success "kernel version: $(cat /etc/kernel_version)"
 
-# create initramfs
-log_info "creating initramfs.."
-mkinitramfs -o /boot/initramfs.img -v "$(cat /etc/kernel_version)"
+    # create initramfs
+    log_info "creating initramfs.."
+    mkinitramfs -o /boot/initramfs.img -v "$(cat /etc/kernel_version)"
+else
+    log_warning "no kernel found - skipping initramfs generation.."
+fi
 
 # remove "temporary" packages
 log_info "removing temporary packages.."
